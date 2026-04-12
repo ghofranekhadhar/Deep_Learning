@@ -147,24 +147,44 @@ Phrase : {betise}"""
 # ─────────────────────────────────────────
 #  IA — GROQ
 # ─────────────────────────────────────────
-def _call(api_key:str, prompt:str, max_tok:int=800)->str:
-    c=_GroqClient(api_key=api_key)
-    m=c.chat.completions.create(model=Cfg.MODEL,max_tokens=max_tok,
-        messages=[{"role":"user","content":prompt}])
-    raw=m.choices[0].message.content.strip()
-    raw=re.sub(r"^```(?:json)?\s*","",raw); raw=re.sub(r"\s*```$","",raw)
+def _extract_json(raw: str) -> str:
+    """Extrait le JSON même si du texte entoure le bloc."""
+    # 1. Retirer les blocs markdown ```json ... ```
+    raw = re.sub(r"```(?:json)?\s*", "", raw).strip()
+    raw = re.sub(r"```", "", raw).strip()
+    # 2. Trouver le premier { et le dernier }
+    start = raw.find("{")
+    end   = raw.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return raw[start:end+1]
     return raw
 
-def validate_ai(betise:str,api_key:str)->dict:
-    return json.loads(_call(api_key,VAL_PROMPT.replace("{betise}",betise),900))
+def _call(api_key: str, prompt: str, max_tok: int = 800) -> dict:
+    """Appelle Groq et retourne un dict JSON parsé."""
+    c = _GroqClient(api_key=api_key)
+    m = c.chat.completions.create(
+        model=Cfg.MODEL,
+        max_tokens=max_tok,
+        messages=[
+            {"role": "system",
+             "content": "Tu es un assistant qui répond UNIQUEMENT en JSON valide, sans aucun texte avant ou après, sans markdown."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    raw = m.choices[0].message.content.strip()
+    cleaned = _extract_json(raw)
+    return json.loads(cleaned)
 
-def scenario_ai(betise:str,val:dict,api_key:str)->dict:
-    t=THEMES.get(val.get("theme","general"),THEMES["general"])
-    p=SCN_PROMPT.replace("{betise}",betise).replace("{theme_desc}",t["desc"])
-    p=p.replace("{prenom}",val.get("prenom","l'enfant"))
-    p=p.replace("{age}",str(val.get("age",5)))
-    p=p.replace("{genre}",val.get("genre","garçon"))
-    return json.loads(_call(api_key,p,2500))
+def validate_ai(betise: str, api_key: str) -> dict:
+    return _call(api_key, VAL_PROMPT.replace("{betise}", betise), 900)
+
+def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
+    t = THEMES.get(val.get("theme", "general"), THEMES["general"])
+    p = SCN_PROMPT.replace("{betise}", betise).replace("{theme_desc}", t["desc"])
+    p = p.replace("{prenom}", val.get("prenom", "l'enfant"))
+    p = p.replace("{age}", str(val.get("age", 5)))
+    p = p.replace("{genre}", val.get("genre", "garçon"))
+    return _call(api_key, p, 2500)
 
 def parse_scenario(d:dict)->tuple:
     char=Character(prenom=d.get("prenom",""),age=int(d.get("age",5)),genre=d.get("genre","garçon"))

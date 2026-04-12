@@ -133,21 +133,21 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
-  "Scène 1 Introduction : phrase courte qui décrit ce qui se passe (max 8 mots)",
-  "Scène 2 Vie normale : phrase courte",
-  "Scène 3 Belle journée : phrase courte",
-  "Scène 4 Découverte : phrase courte",
-  "Scène 5 Une idée : phrase courte",
-  "Scène 6 Attention danger : phrase courte",
-  "Scène 7 Non non non : phrase courte",
-  "Scène 8 La bêtise : phrase courte",
-  "Scène 9 Conséquences : phrase courte",
-  "Scène 10 Au secours : phrase courte",
-  "Scène 11 La leçon : phrase courte",
-  "Scène 12 Comprend : phrase courte",
-  "Scène 13 La promesse : phrase courte",
-  "Scène 14 Et toi : phrase courte",
-  "Scène 15 Au revoir : phrase courte"
+  "[Dans la maison] {prenom} est content et joue tranquillement...",
+  "[Dans le parc] {prenom} court et chante sous le soleil...",
+  "[Dans la maison] Une belle journée commence pour {prenom}...",
+  "[Décor thème] {prenom} aperçoit quelque chose de brilliant...",
+  "[Décor thème] Une idée dangereuse germe dans la tête de {prenom}...",
+  "[Décor thème] ATTENTION ! C'est trop dangereux ! Ne touche pas !",
+  "[Décor thème] NON NON NON ! Appelle un adulte !",
+  "[Décor danger] {prenom} n'écoute pas et fait la bêtise...",
+  "[Décor danger] Oh non ! Les conséquences sont là !",
+  "[Décor danger] {prenom} crie : Au secours ! Maman ! Papa !",
+  "[Dans la maison] Un adulte montre ce qu'il fallait faire...",
+  "[Dans la maison] {prenom} pleure et comprend enfin sa bêtise...",
+  "[Dans le parc] {prenom} promet de ne plus jamais recommencer !",
+  "[Dans le parc] Et toi, tu ferais la même bêtise que {prenom} ?",
+  "[Dans le parc] Bravo ! Tu as appris à éviter le danger avec {prenom} !"
 ],
 "song":{{"titre":"La Chanson de {prenom} et [danger]",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
@@ -242,8 +242,18 @@ def parse_scenario(d: dict) -> tuple:
     return char, song, narrations[:15]
 
 # ─────────────────────────────────────────
-#  SCÈNES
+#  LABELS DE LIEU (affichés dans la vidéo)
 # ─────────────────────────────────────────
+DECOR_LABELS = {
+    "maison":  "🏠 Dans la maison",
+    "parc":    "🌳 Dans le parc",
+    "danger":  "⚠️ Zone de danger",
+    "cuisine": "🍳 Dans la cuisine",
+    "rue":     "🚦 Dans la rue",
+    "piscine": "🏊 Bord de piscine",
+    "bain":    "🛁 Salle de bain",
+}
+
 def build_scenes(char: Character, song: SongData, tk: str, narrations: list) -> List[Scene]:
     p = char.prenom; f = Cfg.FPS
     dm = {"electric": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
@@ -471,71 +481,104 @@ def wrap_text(text: str, max_chars: int) -> list:
     if cur: lines.append(cur)
     return lines
 
+
 def draw_ui(img, scene, f_in, song, genre):
-    draw = ImageDraw.Draw(img); F = get_fonts(); S = Cfg.SIZE
+    draw = ImageDraw.Draw(img)
+    F = get_fonts()
+    S = Cfg.SIZE
 
-    # ── Barre HAUTE : titre de la scène ──
-    ov = Image.new("RGBA", (S, 52), (0, 0, 0, 0))
+    # ════════════════════════════════
+    # BARRE HAUTE — fond blanc semi-transparent
+    # ════════════════════════════════
+    top_h = 58
+    ov = Image.new("RGBA", (S, top_h), (0, 0, 0, 0))
     d2 = ImageDraw.Draw(ov)
-    for yy in range(52):
-        alpha = int(210 * (1 - yy / 52))
-        d2.line([(0, yy), (S, yy)], fill=(245, 247, 252, alpha))
-    img.paste(Image.alpha_composite(img.crop((0, 0, S, 52)).convert("RGBA"), ov), (0, 0))
-    draw = ImageDraw.Draw(img)
-    # Acte label (petit, violet)
-    draw.text((12, 6), scene.acte_label, fill=(120, 80, 200), font=F["small"])
-    # Titre scène (gras, foncé)
-    draw.text((12, 24), scene.titre[:36], fill=P.UI_TFG, font=F["med"])
-
-    # ── Barre BASSE : narration IA + chanson ──
-    bh = int(S * .30)  # plus haute pour afficher le texte narrateur
-    ov2 = Image.new("RGBA", (S, bh), (0, 0, 0, 0))
-    d3 = ImageDraw.Draw(ov2)
-    for yy in range(bh):
-        alpha = int(245 * (yy / bh) ** .35)
-        d3.line([(0, yy), (S, yy)], fill=(10, 8, 40, alpha))
+    for yy in range(top_h):
+        alpha = int(200 * (1 - yy / top_h) ** 0.6)
+        d2.line([(0, yy), (S, yy)], fill=(255, 255, 255, alpha))
     img.paste(Image.alpha_composite(
-        img.crop((0, S - bh, S, S)).convert("RGBA"), ov2), (0, S - bh))
+        img.crop((0, 0, S, top_h)).convert("RGBA"), ov), (0, 0))
     draw = ImageDraw.Draw(img)
 
-    y0 = S - bh + 8
+    # Acte label — gauche, petit violet
+    draw.text((10, 5), scene.acte_label, fill=(110, 70, 200), font=F["small"])
+    # Titre scène — gauche, gras
+    draw.text((10, 22), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
 
-    # Ligne chanson (♪)
+    # 📍 Lieu — droite, fond pill arrondi
+    lieu = DECOR_LABELS.get(scene.decor, f"📍 {scene.decor.capitalize()}")
+    try:
+        lw = draw.textlength(lieu, font=F["small"])
+    except:
+        lw = len(lieu) * 7
+    lx = S - int(lw) - 18
+    draw.rounded_rectangle([lx - 6, 6, S - 8, 26], radius=8, fill=(240, 220, 255))
+    draw.text((lx, 8), lieu, fill=(80, 30, 160), font=F["small"])
+
+    # ════════════════════════════════
+    # BARRE BASSE — fond noir cinématique
+    # ════════════════════════════════
+    bot_h = int(S * 0.33)
+    ov2 = Image.new("RGBA", (S, bot_h), (0, 0, 0, 0))
+    d3 = ImageDraw.Draw(ov2)
+    for yy in range(bot_h):
+        # fondu progressif du transparent vers noir opaque
+        t = (yy / bot_h) ** 0.5
+        alpha = int(230 * t)
+        d3.line([(0, yy), (S, yy)], fill=(8, 5, 30, alpha))
+    img.paste(Image.alpha_composite(
+        img.crop((0, S - bot_h, S, S)).convert("RGBA"), ov2), (0, S - bot_h))
+    draw = ImageDraw.Draw(img)
+
+    y0 = S - bot_h + 6
+
+    # ♪ Parole de chanson — italique violet clair
     sl = song_line(song, scene.song_part)
     if sl:
-        disp = sl[:42] + "…" if len(sl) > 44 else sl
-        draw.text((12, y0), f"♪  {disp}", fill=(160, 140, 255), font=F["small"])
-        y0 += 22
-
-    # Séparateur
-    draw.line([(12, y0), (S - 12, y0)], fill=(60, 50, 120), width=1)
-    y0 += 6
-
-    # Narrateur IA — texte explicatif multi-lignes (grand, blanc)
-    narr = scene.dialogue  # contient la narration générée par l'IA
-    lines = wrap_text(narr, 28)[:3]  # max 3 lignes
-    for line in lines:
-        draw.text((12, y0), line, fill=(255, 255, 220), font=F["med"])
+        disp = sl[:44] + "…" if len(sl) > 46 else sl
+        draw.text((12, y0), f"♪ {disp}", fill=(180, 155, 255), font=F["small"])
         y0 += 20
 
-    # Barre de progression
+    # Ligne séparatrice
+    draw.line([(12, y0), (S - 12, y0)], fill=(80, 60, 160), width=1)
+    y0 += 7
+
+    # 💬 Narration IA — grand texte blanc cassé, multi-lignes
+    narr = scene.dialogue
+    # Retire le préfixe [Dans...] si présent dans le texte
+    if narr.startswith("["):
+        end_bracket = narr.find("]")
+        if end_bracket != -1:
+            narr = narr[end_bracket + 1:].strip()
+    lines = wrap_text(narr, 30)[:3]
+    for i, line in enumerate(lines):
+        # Première ligne plus grande
+        font = F["med"] if i == 0 else F["small"]
+        color = (255, 252, 220) if i == 0 else (210, 200, 240)
+        draw.text((12, y0), line, fill=color, font=font)
+        y0 += 22 if i == 0 else 18
+
+    # Barre de progression — tout en bas
     prog = f_in / max(1, scene.duree)
-    draw.rounded_rectangle([12, S - 10, S - 12, S - 3], radius=3, fill=(50, 40, 100))
-    fw = int((S - 24) * prog) + 12
-    if fw > 22:
-        draw.rounded_rectangle([12, S - 10, fw, S - 3], radius=3, fill=P.UI_BAR)
+    draw.rounded_rectangle([10, S - 9, S - 10, S - 3], radius=3, fill=(40, 30, 90))
+    fw = int((S - 20) * prog) + 10
+    if fw > 20:
+        draw.rounded_rectangle([10, S - 9, fw, S - 3], radius=3, fill=P.UI_BAR)
 
 def easing(t): return 3*t**2-2*t**3
 def blend(f1,f2,t): return np.clip(f1*(1-t)+f2*t,0,255).astype(np.uint8)
 
 def render_scene(scene, genre, song, gframe, td):
     frames = []
+    S = Cfg.SIZE
+    # Le personnage se tient à 56% de hauteur : pieds à 64% (sol)
+    # La barre basse (33%) commence à 67% donc personnage visible
+    char_y = int(S * 0.56)
     for f in range(scene.duree):
-        img = Image.new("RGBA", (Cfg.SIZE, Cfg.SIZE))
+        img = Image.new("RGBA", (S, S))
         draw = ImageDraw.Draw(img)
-        draw_bg(draw, scene.decor, scene.sky_mood, gframe+f, td)
-        draw_char(draw, Cfg.SIZE//2, int(Cfg.SIZE*.52),  # légèrement plus haut pour laisser place en bas
-                  scene.action, scene.emotion, gframe+f, genre)
+        draw_bg(draw, scene.decor, scene.sky_mood, gframe + f, td)
+        draw_char(draw, S // 2, char_y, scene.action, scene.emotion, gframe + f, genre)
         draw_ui(img, scene, f, song, genre)
         frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
     return frames

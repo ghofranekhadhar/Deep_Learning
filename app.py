@@ -132,6 +132,23 @@ SCN_PROMPT="""Tu es auteur de livres éducatifs pour enfants 3-8 ans. Génère u
 Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
+"scenes_narration":[
+  "Scène 1 Introduction : phrase courte qui décrit ce qui se passe (max 8 mots)",
+  "Scène 2 Vie normale : phrase courte",
+  "Scène 3 Belle journée : phrase courte",
+  "Scène 4 Découverte : phrase courte",
+  "Scène 5 Une idée : phrase courte",
+  "Scène 6 Attention danger : phrase courte",
+  "Scène 7 Non non non : phrase courte",
+  "Scène 8 La bêtise : phrase courte",
+  "Scène 9 Conséquences : phrase courte",
+  "Scène 10 Au secours : phrase courte",
+  "Scène 11 La leçon : phrase courte",
+  "Scène 12 Comprend : phrase courte",
+  "Scène 13 La promesse : phrase courte",
+  "Scène 14 Et toi : phrase courte",
+  "Scène 15 Au revoir : phrase courte"
+],
 "song":{{"titre":"La Chanson de {prenom} et [danger]",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
 "acte2":"découverte objet dangereux 3-4 phrases rimées",
@@ -186,41 +203,72 @@ def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     p = p.replace("{genre}", val.get("genre", "garçon"))
     return _call(api_key, p, 2500)
 
-def parse_scenario(d:dict)->tuple:
-    char=Character(prenom=d.get("prenom",""),age=int(d.get("age",5)),genre=d.get("genre","garçon"))
-    s=d["song"]
-    song=SongData(titre=s.get("titre",""),intro=s.get("intro",""),acte1=s.get("acte1",""),
-        acte2=s.get("acte2",""),refrain1=s.get("refrain1",""),acte3=s.get("acte3",""),
-        acte4=s.get("acte4",""),refrain2=s.get("refrain2",""),acte5=s.get("acte5",""),
-        acte6=s.get("acte6",""),outro=s.get("outro",""))
-    return char,song
+def parse_scenario(d: dict) -> tuple:
+    char = Character(prenom=d.get("prenom",""), age=int(d.get("age",5)), genre=d.get("genre","garçon"))
+    s = d["song"]
+    song = SongData(titre=s.get("titre",""), intro=s.get("intro",""), acte1=s.get("acte1",""),
+        acte2=s.get("acte2",""), refrain1=s.get("refrain1",""), acte3=s.get("acte3",""),
+        acte4=s.get("acte4",""), refrain2=s.get("refrain2",""), acte5=s.get("acte5",""),
+        acte6=s.get("acte6",""), outro=s.get("outro",""))
+    # Récupère les 15 narrations générées par l'IA
+    raw_narr = d.get("scenes_narration", [])
+    # Nettoie les narrations (retire le préfixe "Scène X : " si présent)
+    narrations = []
+    for n in raw_narr:
+        txt = str(n)
+        if ":" in txt:
+            txt = txt.split(":", 1)[-1].strip()
+        narrations.append(txt)
+    # Complète si l'IA donne moins de 15
+    defaults = [
+        f"{char.prenom} est prêt pour l'aventure !",
+        f"{char.prenom} joue joyeusement.",
+        "Une belle journée commence.",
+        "Quelque chose attire son attention...",
+        "Une idée dangereuse germe...",
+        "ATTENTION ! C'est dangereux !",
+        "Non non non ! N'fais pas ça !",
+        f"{char.prenom} n'écoute pas...",
+        "Oh non ! Les conséquences arrivent !",
+        "Au secours ! À l'aide !",
+        "Voilà ce qu'il faut faire.",
+        f"{char.prenom} comprend sa bêtise.",
+        "Une promesse solennelle est faite.",
+        "Et toi, tu ferais comment ?",
+        "Bravo d'avoir appris avec nous !",
+    ]
+    while len(narrations) < 15:
+        narrations.append(defaults[len(narrations)])
+    return char, song, narrations[:15]
 
 # ─────────────────────────────────────────
 #  SCÈNES
 # ─────────────────────────────────────────
-def build_scenes(char:Character,song:SongData,tk:str)->List[Scene]:
-    p=char.prenom; f=Cfg.FPS
-    dm={"electric":["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
-        "kitchen": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
-        "pool":    ["parc"]*3+["danger"]*3+["parc"]*9,
-        "road":    ["parc"]*3+["danger"]*3+["parc"]*9}
-    d=dm.get(tk,["parc"]*15)
+def build_scenes(char: Character, song: SongData, tk: str, narrations: list) -> List[Scene]:
+    p = char.prenom; f = Cfg.FPS
+    dm = {"electric": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
+          "kitchen":  ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
+          "pool":     ["parc"]*3+["danger"]*3+["parc"]*9,
+          "road":     ["parc"]*3+["danger"]*3+["parc"]*9}
+    d = dm.get(tk, ["parc"]*15)
+    # Utilise les narrations IA comme dialogue de chaque scène
+    n = narrations  # alias court
     return [
-        Scene("Introduction","Intro",d[0],"saute_joie","heureux",f"La chanson de {p}!",f*5,"day","intro"),
-        Scene(f"La vie de {p}","Acte I",d[1],"court_vite","heureux",f"{p} joue et rit!",f*5,"day","acte1"),
-        Scene("Belle journée","Acte I",d[2],"marche_content","heureux",f"{p} est heureux.",f*4,"golden","acte1"),
-        Scene("Qu'est-ce?","Acte II",d[3],"decouvre_surpris","curieux",f"Quelque chose attire {p}...",f*5,"golden","acte2"),
-        Scene("Une idée...","Acte II",d[4],"hesite_balance","penseur","Juste une petite fois...",f*4,"golden","acte2"),
-        Scene("⚠️ ATTENTION!","Refrain",d[5],"appelle_gestes","effraye","Non non non! Danger!",f*5,"day","refrain1"),
-        Scene("NON NON NON!","Refrain",d[6],"saute_peur","effraye","Appelle un adulte!",f*4,"day","refrain1"),
-        Scene("La bêtise!","Acte III",d[7],"fait_betise_saute","curieux",f"{p} n'écoute pas!",f*6,"dusk","acte3"),
-        Scene("Conséquences!","Acte IV",d[8],"court_panique","effraye",f"{p} a très peur!",f*6,"dusk","acte4"),
-        Scene("AU SECOURS!","Acte IV",d[9],"appelle_gestes","effraye","MAMAN! PAPA!",f*5,"dusk","acte4"),
-        Scene("La leçon","Refrain",d[10],"ecoute_hoche","desole","Voilà ce qu'il faut faire.",f*5,"day","refrain2"),
-        Scene(f"{p} comprend","Acte V",d[11],"pleure_assise","triste",f"{p} pleure et comprend.",f*6,"day","acte5"),
-        Scene("La promesse","Acte VI",d[12],"saute_promesse","determine",f"{p} fait une promesse!",f*5,"day","acte6"),
-        Scene("Et toi?","Outro",d[13],"pointe_enfant","heureux",f"{p} te parle à toi!",f*5,"day","outro"),
-        Scene("À bientôt!","Outro",d[14],"salue_saute","fier","Bravo d'avoir regardé!",f*4,"day","outro"),
+        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  f*5,  "day",    "intro"),
+        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  f*5,  "day",    "acte1"),
+        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  f*4,  "golden", "acte1"),
+        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  f*5,  "golden", "acte2"),
+        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  f*4,  "golden", "acte2"),
+        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  f*5,  "day",    "refrain1"),
+        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  f*4,  "day",    "refrain1"),
+        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  f*6,  "dusk",   "acte3"),
+        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  f*6,  "dusk",   "acte4"),
+        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  f*5,  "dusk",   "acte4"),
+        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], f*5,  "day",    "refrain2"),
+        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], f*6,  "day",    "acte5"),
+        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], f*5,  "day",    "acte6"),
+        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], f*5,  "day",    "outro"),
+        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], f*4,  "day",    "outro"),
     ]
 
 # ─────────────────────────────────────────
@@ -410,55 +458,100 @@ def song_line(song,part):
         if idx>15: return text[:idx].strip()
     return text[:48].strip()
 
-def draw_ui(img,scene,f_in,song,genre):
-    draw=ImageDraw.Draw(img); F=get_fonts(); S=Cfg.SIZE
-    ov=Image.new("RGBA",(S,48),(0,0,0,0)); d2=ImageDraw.Draw(ov)
-    for yy in range(48):
-        alpha=int(220*(1-yy/48)); d2.line([(0,yy),(S,yy)],fill=(*P.UI_BG,alpha))
-    img.paste(Image.alpha_composite(img.crop((0,0,S,48)).convert("RGBA"),ov),(0,0))
-    draw=ImageDraw.Draw(img); draw.text((12,8),scene.titre[:38],fill=P.UI_TFG,font=F["med"])
-    bh=int(S*.22)
-    ov2=Image.new("RGBA",(S,bh),(0,0,0,0)); d3=ImageDraw.Draw(ov2)
+def wrap_text(text: str, max_chars: int) -> list:
+    """Coupe le texte en lignes de max_chars caractères."""
+    words = text.split()
+    lines, cur = [], ""
+    for w in words:
+        if len(cur) + len(w) + 1 <= max_chars:
+            cur = (cur + " " + w).strip()
+        else:
+            if cur: lines.append(cur)
+            cur = w
+    if cur: lines.append(cur)
+    return lines
+
+def draw_ui(img, scene, f_in, song, genre):
+    draw = ImageDraw.Draw(img); F = get_fonts(); S = Cfg.SIZE
+
+    # ── Barre HAUTE : titre de la scène ──
+    ov = Image.new("RGBA", (S, 52), (0, 0, 0, 0))
+    d2 = ImageDraw.Draw(ov)
+    for yy in range(52):
+        alpha = int(210 * (1 - yy / 52))
+        d2.line([(0, yy), (S, yy)], fill=(245, 247, 252, alpha))
+    img.paste(Image.alpha_composite(img.crop((0, 0, S, 52)).convert("RGBA"), ov), (0, 0))
+    draw = ImageDraw.Draw(img)
+    # Acte label (petit, violet)
+    draw.text((12, 6), scene.acte_label, fill=(120, 80, 200), font=F["small"])
+    # Titre scène (gras, foncé)
+    draw.text((12, 24), scene.titre[:36], fill=P.UI_TFG, font=F["med"])
+
+    # ── Barre BASSE : narration IA + chanson ──
+    bh = int(S * .30)  # plus haute pour afficher le texte narrateur
+    ov2 = Image.new("RGBA", (S, bh), (0, 0, 0, 0))
+    d3 = ImageDraw.Draw(ov2)
     for yy in range(bh):
-        alpha=int(235*(yy/bh)**.4); d3.line([(0,yy),(S,yy)],fill=(*P.SONG_BG,alpha))
-    img.paste(Image.alpha_composite(img.crop((0,S-bh,S,S)).convert("RGBA"),ov2),(0,S-bh))
-    draw=ImageDraw.Draw(img)
-    sl=song_line(song,scene.song_part)
+        alpha = int(245 * (yy / bh) ** .35)
+        d3.line([(0, yy), (S, yy)], fill=(10, 8, 40, alpha))
+    img.paste(Image.alpha_composite(
+        img.crop((0, S - bh, S, S)).convert("RGBA"), ov2), (0, S - bh))
+    draw = ImageDraw.Draw(img)
+
+    y0 = S - bh + 8
+
+    # Ligne chanson (♪)
+    sl = song_line(song, scene.song_part)
     if sl:
-        disp=sl[:40]+"…"if len(sl)>42 else sl
-        draw.text((12,S-bh+8),f"♪  {disp}",fill=P.SONG_FG,font=F["small"])
-    draw.line([(12,S-bh+30),(S-12,S-bh+30)],fill=(200,200,230),width=1)
-    dlg=scene.dialogue[:40]+"…"if len(scene.dialogue)>42 else scene.dialogue
-    draw.text((12,S-bh+36),f"»  {dlg}",fill=P.UI_DFG,font=F["small"])
-    prog=f_in/max(1,scene.duree)
-    draw.rounded_rectangle([12,S-14,S-12,S-4],radius=4,fill=(220,222,240))
-    fw=int((S-24)*prog)+12
-    if fw>22: draw.rounded_rectangle([12,S-14,fw,S-4],radius=4,fill=P.UI_BAR)
+        disp = sl[:42] + "…" if len(sl) > 44 else sl
+        draw.text((12, y0), f"♪  {disp}", fill=(160, 140, 255), font=F["small"])
+        y0 += 22
+
+    # Séparateur
+    draw.line([(12, y0), (S - 12, y0)], fill=(60, 50, 120), width=1)
+    y0 += 6
+
+    # Narrateur IA — texte explicatif multi-lignes (grand, blanc)
+    narr = scene.dialogue  # contient la narration générée par l'IA
+    lines = wrap_text(narr, 28)[:3]  # max 3 lignes
+    for line in lines:
+        draw.text((12, y0), line, fill=(255, 255, 220), font=F["med"])
+        y0 += 20
+
+    # Barre de progression
+    prog = f_in / max(1, scene.duree)
+    draw.rounded_rectangle([12, S - 10, S - 12, S - 3], radius=3, fill=(50, 40, 100))
+    fw = int((S - 24) * prog) + 12
+    if fw > 22:
+        draw.rounded_rectangle([12, S - 10, fw, S - 3], radius=3, fill=P.UI_BAR)
 
 def easing(t): return 3*t**2-2*t**3
 def blend(f1,f2,t): return np.clip(f1*(1-t)+f2*t,0,255).astype(np.uint8)
 
-def render_scene(scene,genre,song,gframe,td):
-    frames=[]
+def render_scene(scene, genre, song, gframe, td):
+    frames = []
     for f in range(scene.duree):
-        img=Image.new("RGBA",(Cfg.SIZE,Cfg.SIZE)); draw=ImageDraw.Draw(img)
-        draw_bg(draw,scene.decor,scene.sky_mood,gframe+f,td)
-        draw_char(draw,Cfg.SIZE//2,int(Cfg.SIZE*.58),scene.action,scene.emotion,gframe+f,genre)
-        draw_ui(img,scene,f,song,genre)
-        frames.append(cv2.cvtColor(np.array(img.convert("RGB")),cv2.COLOR_RGB2BGR))
+        img = Image.new("RGBA", (Cfg.SIZE, Cfg.SIZE))
+        draw = ImageDraw.Draw(img)
+        draw_bg(draw, scene.decor, scene.sky_mood, gframe+f, td)
+        draw_char(draw, Cfg.SIZE//2, int(Cfg.SIZE*.52),  # légèrement plus haut pour laisser place en bas
+                  scene.action, scene.emotion, gframe+f, genre)
+        draw_ui(img, scene, f, song, genre)
+        frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
     return frames
 
-def render_all(scenes,genre,song,td,pb):
-    all_f=[]; gf=0; EF=Cfg.EF; total=len(scenes)
-    for i,scene in enumerate(scenes):
-        pb.progress((i+1)/total,text=f"🎨 Scène {i+1}/{total} — {scene.titre}")
-        sf=render_scene(scene,genre,song,gf,td)
-        if all_f and EF>0:
-            prev=all_f[-EF:]; nxt=sf[:EF]
-            bl=[blend(prev[j],nxt[j],easing(j/EF))for j in range(min(EF,len(prev),len(nxt)))]
-            all_f[-len(bl):]=bl
-        all_f.extend(sf); gf+=scene.duree
-    pb.progress(1.0,text="✅ Rendu terminé!"); return all_f
+def render_all(scenes, genre, song, td, pb):
+    all_f = []; gf = 0; EF = Cfg.EF; total = len(scenes)
+    for i, scene in enumerate(scenes):
+        pb.progress((i+1)/total, text=f"🎨 Scène {i+1}/{total} — {scene.titre}")
+        sf = render_scene(scene, genre, song, gf, td)
+        if all_f and EF > 0:
+            prev = all_f[-EF:]; nxt = sf[:EF]
+            bl = [blend(prev[j], nxt[j], easing(j/EF)) for j in range(min(EF,len(prev),len(nxt)))]
+            all_f[-len(bl):] = bl
+        all_f.extend(sf); gf += scene.duree
+    pb.progress(1.0, text="✅ Rendu terminé!")
+    return all_f
 
 async def _edge_gen(text,voice,rate,pitch,out):
     comm=edge_tts.Communicate(text=text,voice=voice,rate=rate,pitch=pitch)
@@ -637,8 +730,8 @@ def main():
 
     # ── SESSION ──
     defaults={"step":1,"api_key":"","betise":"","val":None,
-              "scenario":None,"char":None,"song":None,"theme":"general",
-              "show_key":False,"analyzing":False}
+              "scenario":None,"char":None,"song":None,"narrations":[],
+              "theme":"general","show_key":False,"analyzing":False}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
@@ -677,8 +770,8 @@ def main():
         if st.session_state.step>1:
             st.markdown("---")
             if st.button("🔄 Recommencer",use_container_width=True):
-                for k in["step","betise","val","scenario","char","song","theme"]:
-                    st.session_state[k]=1 if k=="step" else "general"if k=="theme" else""if k=="betise" else None
+                for k in["step","betise","val","scenario","char","song","narrations","theme"]:
+                    st.session_state[k]=1 if k=="step" else "general"if k=="theme" else[]if k=="narrations" else""if k=="betise" else None
                 st.rerun()
 
     # ── HÉRO ──
@@ -780,9 +873,10 @@ def main():
                             try:
                                 data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
                                 st.session_state.scenario=data
-                                char,song=parse_scenario(data)
+                                char,song,narrations=parse_scenario(data)
                                 st.session_state.char=char
                                 st.session_state.song=song
+                                st.session_state.narrations=narrations
                                 st.session_state.step=2
                                 st.rerun()
                             except json.JSONDecodeError:
@@ -907,7 +1001,7 @@ def main():
 
         with st.status("⚙️ Génération en cours...",expanded=True) as status:
             st.write("🎨 Rendu vidéo frame par frame...")
-            scenes=build_scenes(char,song,st.session_state.theme)
+            scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations)
             pb=st.progress(0,text="Démarrage…")
             frames=render_all(scenes,char.genre,song,td,pb)
 
@@ -935,8 +1029,8 @@ def main():
         c1,c2=st.columns(2)
         with c1:
             if st.button("🔄 Créer une nouvelle vidéo",use_container_width=True,type="primary"):
-                for k in["step","betise","val","scenario","char","song","theme"]:
-                    st.session_state[k]=1 if k=="step" else "general"if k=="theme"else""if k=="betise"else None
+                for k in["step","betise","val","scenario","char","song","narrations","theme"]:
+                    st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k=="narrations" else "" if k=="betise" else None
                 st.rerun()
         with c2:
             st.info("💡 Partage cette vidéo avec ton enfant pour apprendre en s'amusant!")

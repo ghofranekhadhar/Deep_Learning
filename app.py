@@ -6,7 +6,6 @@
 ╚══════════════════════════════════════════════════════════════════╝
 """
 
-
 import streamlit as st
 import subprocess, sys, os, re, math, asyncio, json, tempfile
 from dataclasses import dataclass
@@ -565,7 +564,9 @@ def draw_ui(img, scene, f_in, song, genre):
         end_bracket = narr.find("]")
         if end_bracket != -1:
             narr = narr[end_bracket + 1:].strip()
-    lines = wrap_text(narr, 30)[:3]
+    
+    # Couper plus court (25 au lieu de 30) pour laisser place au personnage à droite
+    lines = wrap_text(narr, 25)[:3]
     for i, line in enumerate(lines):
         # Première ligne plus grande
         font = F["med"] if i == 0 else F["small"]
@@ -586,20 +587,24 @@ def blend(f1,f2,t): return np.clip(f1*(1-t)+f2*t,0,255).astype(np.uint8)
 def render_scene(scene, genre, song, gframe, td):
     frames = []
     S = Cfg.SIZE
-    # Le personnage se tient à 56% de hauteur : pieds à 64% (sol)
-    # La barre basse (33%) commence à 67% donc personnage visible
-    char_y = int(S * 0.56)
+    # Le personnage se tient en bas à droite au premier plan
+    char_x = int(S * 0.85)
+    char_y = int(S * 0.82)
     for f in range(scene.duree):
         img = Image.new("RGBA", (S, S))
         draw = ImageDraw.Draw(img)
-        # Utiliser l'image de fond générée si disponible, sinon repli
+        # 1. Image de fond générée si disponible, sinon repli
         if getattr(scene, "bg_img", None) is not None:
             img.paste(scene.bg_img, (0, 0))
         else:
             draw_bg(draw, scene.decor, scene.sky_mood, gframe + f, td)
         
-        draw_char(draw, S // 2, char_y, scene.action, scene.emotion, gframe + f, genre)
+        # 2. Barre d'interface texte
         draw_ui(img, scene, f, song, genre)
+
+        # 3. Personnage au premier plan (par dessus l'image et l'interface)
+        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre)
+        
         frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
     return frames
 

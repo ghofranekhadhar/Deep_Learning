@@ -765,7 +765,7 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
 /* Misc */
 hr{border-color:#e2e8f0!important;}
 .stAlert{border-radius:12px!important;}
-#MainMenu,footer,header{visibility:hidden;}
+#MainMenu,footer{visibility:hidden;}
 </style>
 """
 

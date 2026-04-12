@@ -49,7 +49,7 @@ class Config:
     VOICE_GARCON = "fr-FR-HenriNeural"
     VOICE_RATE   = "-20%"
     VOICE_PITCH  = "+5Hz"
-    AI_MODEL     = "llama3-8b-8192"
+    AI_MODEL = "llama-3.1-8b-instant"
 
 
 # ══════════════════════════════════════════════════════════

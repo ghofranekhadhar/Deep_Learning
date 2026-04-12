@@ -152,9 +152,21 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
   "Scène 15 Au revoir : phrase courte"
 ],
 "image_prompts":[
-  "English prompt scene 1", "English prompt scene 2", "English prompt scene 3", "English prompt scene 4", "English prompt scene 5",
-  "English prompt scene 6", "English prompt scene 7", "English prompt scene 8", "English prompt scene 9", "English prompt scene 10",
-  "English prompt scene 11", "English prompt scene 12", "English prompt scene 13", "English prompt scene 14", "English prompt scene 15"
+  "Describe scene 1 background in English (e.g. colorful living room)",
+  "Describe scene 2 background in English based on story",
+  "Describe scene 3 background in English based on story",
+  "Describe scene 4 background in English based on story",
+  "Describe scene 5 background in English based on story",
+  "Describe scene 6 background in English based on story",
+  "Describe scene 7 background in English based on story",
+  "Describe scene 8 background in English based on story",
+  "Describe scene 9 background in English based on story",
+  "Describe scene 10 background in English based on story",
+  "Describe scene 11 background in English based on story",
+  "Describe scene 12 background in English based on story",
+  "Describe scene 13 background in English based on story",
+  "Describe scene 14 background in English based on story",
+  "Describe scene 15 background in English based on story"
 ],
 "song":{{"titre":"La Chanson de {prenom} et [danger]",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
@@ -1077,7 +1089,7 @@ def main():
                 try:
                     # Prompt styling pour image enfantine stable
                     prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
-                    url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed=42"
+                    url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
                     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                     with urllib.request.urlopen(req) as resp:
                         # On télécharge l'image

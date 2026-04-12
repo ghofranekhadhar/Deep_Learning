@@ -152,10 +152,9 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
   "Scène 15 Au revoir : phrase courte"
 ],
 "image_prompts":[
-  "English detailed visual prompt for scene 1 background (e.g. 'A bright colorful modern house interior')",
-  "English visual prompt for scene 2 background",
-  "English visual prompt for scene 3 background",
-  ... (15 english prompts matching the story)
+  "English prompt scene 1", "English prompt scene 2", "English prompt scene 3", "English prompt scene 4", "English prompt scene 5",
+  "English prompt scene 6", "English prompt scene 7", "English prompt scene 8", "English prompt scene 9", "English prompt scene 10",
+  "English prompt scene 11", "English prompt scene 12", "English prompt scene 13", "English prompt scene 14", "English prompt scene 15"
 ],
 "song":{{"titre":"La Chanson de {prenom} et [danger]",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
@@ -209,7 +208,7 @@ def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     p = p.replace("{prenom}", val.get("prenom", "l'enfant"))
     p = p.replace("{age}", str(val.get("age", 5)))
     p = p.replace("{genre}", val.get("genre", "garçon"))
-    return _call(api_key, p, 2500)
+    return _call(api_key, p, 3000)
 
 def parse_scenario(d: dict) -> tuple:
     char = Character(prenom=d.get("prenom",""), age=int(d.get("age",5)), genre=d.get("genre","garçon"))

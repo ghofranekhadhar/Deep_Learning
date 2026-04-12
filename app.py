@@ -64,6 +64,8 @@ class Scene:
     titre:str; acte_label:str; decor:str; action:str
     emotion:str; dialogue:str; duree:int
     sky_mood:str="day"; song_part:str=""
+    image_prompt:str=""
+    bg_img:Image.Image=None
 
 # ─────────────────────────────────────────
 #  THÈMES VISUELS
@@ -133,21 +135,27 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
-  "[Dans la maison] {prenom} est content et joue tranquillement...",
-  "[Dans le parc] {prenom} court et chante sous le soleil...",
-  "[Dans la maison] Une belle journée commence pour {prenom}...",
-  "[Décor thème] {prenom} aperçoit quelque chose de brilliant...",
-  "[Décor thème] Une idée dangereuse germe dans la tête de {prenom}...",
-  "[Décor thème] ATTENTION ! C'est trop dangereux ! Ne touche pas !",
-  "[Décor thème] NON NON NON ! Appelle un adulte !",
-  "[Décor danger] {prenom} n'écoute pas et fait la bêtise...",
-  "[Décor danger] Oh non ! Les conséquences sont là !",
-  "[Décor danger] {prenom} crie : Au secours ! Maman ! Papa !",
-  "[Dans la maison] Un adulte montre ce qu'il fallait faire...",
-  "[Dans la maison] {prenom} pleure et comprend enfin sa bêtise...",
-  "[Dans le parc] {prenom} promet de ne plus jamais recommencer !",
-  "[Dans le parc] Et toi, tu ferais la même bêtise que {prenom} ?",
-  "[Dans le parc] Bravo ! Tu as appris à éviter le danger avec {prenom} !"
+  "Scène 1 Introduction : phrase courte qui décrit ce qui se passe (max 8 mots)",
+  "Scène 2 Vie normale : phrase courte",
+  "Scène 3 Belle journée : phrase courte",
+  "Scène 4 Découverte : phrase courte",
+  "Scène 5 Une idée : phrase courte",
+  "Scène 6 Attention danger : phrase courte",
+  "Scène 7 Non non non : phrase courte",
+  "Scène 8 La bêtise : phrase courte",
+  "Scène 9 Conséquences : phrase courte",
+  "Scène 10 Au secours : phrase courte",
+  "Scène 11 La leçon : phrase courte",
+  "Scène 12 Comprend : phrase courte",
+  "Scène 13 La promesse : phrase courte",
+  "Scène 14 Et toi : phrase courte",
+  "Scène 15 Au revoir : phrase courte"
+],
+"image_prompts":[
+  "English detailed visual prompt for scene 1 background (e.g. 'A bright colorful modern house interior')",
+  "English visual prompt for scene 2 background",
+  "English visual prompt for scene 3 background",
+  ... (15 english prompts matching the story)
 ],
 "song":{{"titre":"La Chanson de {prenom} et [danger]",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
@@ -219,7 +227,7 @@ def parse_scenario(d: dict) -> tuple:
         if ":" in txt:
             txt = txt.split(":", 1)[-1].strip()
         narrations.append(txt)
-    # Complète si l'IA donne moins de 15
+    # Complète si l'IA donne moins de 15 narrations
     defaults = [
         f"{char.prenom} est prêt pour l'aventure !",
         f"{char.prenom} joue joyeusement.",
@@ -239,7 +247,12 @@ def parse_scenario(d: dict) -> tuple:
     ]
     while len(narrations) < 15:
         narrations.append(defaults[len(narrations)])
-    return char, song, narrations[:15]
+        
+    img_prompts = d.get("image_prompts", [])
+    while len(img_prompts) < 15:
+        img_prompts.append("beautiful landscape, children book illustration style, detailed scene")
+        
+    return char, song, narrations[:15], img_prompts[:15]
 
 # ─────────────────────────────────────────
 #  LABELS DE LIEU (affichés dans la vidéo)
@@ -254,7 +267,7 @@ DECOR_LABELS = {
     "bain":    "🛁 Salle de bain",
 }
 
-def build_scenes(char: Character, song: SongData, tk: str, narrations: list) -> List[Scene]:
+def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list) -> List[Scene]:
     p = char.prenom; f = Cfg.FPS
     dm = {"electric": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
           "kitchen":  ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
@@ -263,22 +276,23 @@ def build_scenes(char: Character, song: SongData, tk: str, narrations: list) -> 
     d = dm.get(tk, ["parc"]*15)
     # Utilise les narrations IA comme dialogue de chaque scène
     n = narrations  # alias court
+    ip = img_prompts
     return [
-        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  f*5,  "day",    "intro"),
-        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  f*5,  "day",    "acte1"),
-        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  f*4,  "golden", "acte1"),
-        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  f*5,  "golden", "acte2"),
-        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  f*4,  "golden", "acte2"),
-        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  f*5,  "day",    "refrain1"),
-        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  f*4,  "day",    "refrain1"),
-        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  f*6,  "dusk",   "acte3"),
-        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  f*6,  "dusk",   "acte4"),
-        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  f*5,  "dusk",   "acte4"),
-        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], f*5,  "day",    "refrain2"),
-        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], f*6,  "day",    "acte5"),
-        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], f*5,  "day",    "acte6"),
-        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], f*5,  "day",    "outro"),
-        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], f*4,  "day",    "outro"),
+        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  f*5,  "day",    "intro", ip[0]),
+        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  f*5,  "day",    "acte1", ip[1]),
+        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  f*4,  "golden", "acte1", ip[2]),
+        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  f*5,  "golden", "acte2", ip[3]),
+        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  f*4,  "golden", "acte2", ip[4]),
+        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  f*5,  "day",    "refrain1", ip[5]),
+        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  f*4,  "day",    "refrain1", ip[6]),
+        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  f*6,  "dusk",   "acte3", ip[7]),
+        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  f*6,  "dusk",   "acte4", ip[8]),
+        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  f*5,  "dusk",   "acte4", ip[9]),
+        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], f*5,  "day",    "refrain2", ip[10]),
+        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], f*6,  "day",    "acte5", ip[11]),
+        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], f*5,  "day",    "acte6", ip[12]),
+        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], f*5,  "day",    "outro", ip[13]),
+        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], f*4,  "day",    "outro", ip[14]),
     ]
 
 # ─────────────────────────────────────────
@@ -577,7 +591,12 @@ def render_scene(scene, genre, song, gframe, td):
     for f in range(scene.duree):
         img = Image.new("RGBA", (S, S))
         draw = ImageDraw.Draw(img)
-        draw_bg(draw, scene.decor, scene.sky_mood, gframe + f, td)
+        # Utiliser l'image de fond générée si disponible, sinon repli
+        if getattr(scene, "bg_img", None) is not None:
+            img.paste(scene.bg_img, (0, 0))
+        else:
+            draw_bg(draw, scene.decor, scene.sky_mood, gframe + f, td)
+        
         draw_char(draw, S // 2, char_y, scene.action, scene.emotion, gframe + f, genre)
         draw_ui(img, scene, f, song, genre)
         frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
@@ -773,7 +792,7 @@ def main():
 
     # ── SESSION ──
     defaults={"step":1,"api_key":"","betise":"","val":None,
-              "scenario":None,"char":None,"song":None,"narrations":[],
+              "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
               "theme":"general","show_key":False,"analyzing":False}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
@@ -813,8 +832,8 @@ def main():
         if st.session_state.step>1:
             st.markdown("---")
             if st.button("🔄 Recommencer",use_container_width=True):
-                for k in["step","betise","val","scenario","char","song","narrations","theme"]:
-                    st.session_state[k]=1 if k=="step" else "general"if k=="theme" else[]if k=="narrations" else""if k=="betise" else None
+                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme"]:
+                    st.session_state[k]=1 if k=="step" else "general"if k=="theme" else[]if k in["narrations","img_prompts"] else""if k=="betise" else None
                 st.rerun()
 
     # ── HÉRO ──
@@ -912,14 +931,15 @@ def main():
                 cb1,cb2=st.columns([1,1])
                 with cb1:
                     if st.button("✅ Oui, générer le scénario!",type="primary",use_container_width=True):
-                        with st.spinner("🎵 Génération scénario personnalisé…"):
+                        with st.spinner("🎵 Génération scénario et images…"):
                             try:
                                 data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
                                 st.session_state.scenario=data
-                                char,song,narrations=parse_scenario(data)
+                                char,song,narrations,img_prompts=parse_scenario(data)
                                 st.session_state.char=char
                                 st.session_state.song=song
                                 st.session_state.narrations=narrations
+                                st.session_state.img_prompts=img_prompts
                                 st.session_state.step=2
                                 st.rerun()
                             except json.JSONDecodeError:
@@ -1043,8 +1063,25 @@ def main():
         </div>""",unsafe_allow_html=True)
 
         with st.status("⚙️ Génération en cours...",expanded=True) as status:
+            scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts)
+            
+            st.write("🖼️ Génération des décors avec l'IA (Images)...")
+            import urllib.request, urllib.parse
+            pb_bg = st.progress(0, text="Téléchargement des images d'arrière-plan…")
+            for i, scene in enumerate(scenes):
+                try:
+                    # Prompt styling pour image enfantine stable
+                    prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
+                    url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed=42"
+                    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req) as resp:
+                        # On télécharge l'image
+                        scene.bg_img = Image.open(resp).convert("RGBA").resize((Cfg.SIZE, Cfg.SIZE))
+                except Exception as e:
+                    scene.bg_img = None # Repli sur draw_bg si problème
+                pb_bg.progress((i+1)/len(scenes), text=f"Décor {i+1}/{len(scenes)}")
+
             st.write("🎨 Rendu vidéo frame par frame...")
-            scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations)
             pb=st.progress(0,text="Démarrage…")
             frames=render_all(scenes,char.genre,song,td,pb)
 
@@ -1072,8 +1109,8 @@ def main():
         c1,c2=st.columns(2)
         with c1:
             if st.button("🔄 Créer une nouvelle vidéo",use_container_width=True,type="primary"):
-                for k in["step","betise","val","scenario","char","song","narrations","theme"]:
-                    st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k=="narrations" else "" if k=="betise" else None
+                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme"]:
+                    st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k in["narrations","img_prompts"] else "" if k=="betise" else None
                 st.rerun()
         with c2:
             st.info("💡 Partage cette vidéo avec ton enfant pour apprendre en s'amusant!")

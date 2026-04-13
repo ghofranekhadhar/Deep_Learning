@@ -920,7 +920,8 @@ def main():
         betise=st.text_area("Bêtise",value=st.session_state.betise,
             placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques avec ses doigts",
             height=110,label_visibility="collapsed")
-        st.session_state.betise=betise
+        if betise != st.session_state.betise:
+            st.session_state.betise = betise
 
         def ai_bubble(html_content):
             hdr = '<div style="font-size:0.75rem;font-weight:800;color:#6366f1;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🤖 Assistant Scénariste</div>'
@@ -929,29 +930,45 @@ def main():
             hdr = '<div style="font-size:0.75rem;font-weight:800;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Vous</div>'
             return f'<div class="chat-row user"><div class="chat-bubble user">{hdr}{html_content}</div></div>'
 
+        c_clear, c_check = st.columns([1,3])
+        with c_clear:
+            if st.button("🗑️ Vider le texte", use_container_width=True):
+                st.session_state.betise = ""
+                st.session_state.val = None
+                st.session_state.confirmed_yes = False
+                st.session_state.confirmed_no = False
+                st.rerun()
+
         # Bouton analyser si on n'a pas encore de résultat
-        if not st.session_state.val:
-            if st.button("🔍 Vérifier ma phrase",type="primary",use_container_width=True):
-                if not st.session_state.api_key.strip():
-                    st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
-                elif not betise.strip():
-                    st.error("⚠️ Décris la bêtise de ton enfant.")
-                elif not _GROQ_OK:
-                    st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
-                else:
-                    with st.spinner("🤖 L'IA vérifie ce que tu as écrit…"):
-                        try:
-                            result=validate_ai(st.session_state.betise,st.session_state.api_key)
-                            st.session_state.val=result
-                            st.session_state.confirmed_yes=False
-                            st.session_state.confirmed_no=False
-                            if result.get("theme") in THEMES:
-                                st.session_state.theme=result["theme"]
-                            st.rerun()
-                        except json.JSONDecodeError:
-                            st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
-                        except Exception as e:
-                            st.error(f"Erreur API Groq : {e}")
+        with c_check:
+            if not st.session_state.val:
+                if st.button("🔍 Lancer l'analyse IA",type="primary",use_container_width=True):
+                    if not st.session_state.api_key.strip():
+                        st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
+                    elif not st.session_state.betise.strip():
+                        st.error("⚠️ Décris la bêtise de ton enfant.")
+                    elif not _GROQ_OK:
+                        st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
+                    else:
+                        with st.spinner("🤖 L'IA vérifie ce que tu as écrit…"):
+                            try:
+                                result=validate_ai(st.session_state.betise,st.session_state.api_key)
+                                st.session_state.val=result
+                                st.session_state.confirmed_yes=False
+                                st.session_state.confirmed_no=False
+                                if result.get("theme") in THEMES:
+                                    st.session_state.theme=result["theme"]
+                                st.rerun()
+                            except json.JSONDecodeError:
+                                st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
+                            except Exception as e:
+                                st.error(f"Erreur API Groq : {e}")
+            else:
+                if st.button("🔙 Annuler et modifier le texte (Retour)", use_container_width=True):
+                    st.session_state.val = None
+                    st.session_state.confirmed_yes = False
+                    st.session_state.confirmed_no = False
+                    st.rerun()
 
         # ── RÉSULTAT VALIDATION CHAT ──
         if st.session_state.val:
@@ -985,7 +1002,7 @@ def main():
                     
                     msg = "<div style='font-weight:600;color:#15803d;margin-bottom:8px;'>Excellent. Base de travail validée.</div>"
                     msg += "<div style='margin-bottom:10px;font-size:0.95rem;'>Afin d'optimiser la dimension éducative de l'animation, mon algorithme vous suggère quelques enrichissements :</div>"
-                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;'>Cliquez sur l'une des propositions ci-dessous pour l'ajouter automatiquement à votre description.</div>"
+                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;'>Cliquez sur l'une des propositions ci-dessous pour l'ajouter automatiquement à votre description ci-dessus.</div>"
                     st.markdown(ai_bubble(msg), unsafe_allow_html=True)
                     
                     st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
@@ -999,32 +1016,39 @@ def main():
                             st.rerun()
                             
                     st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
+                    st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Actions :</b></div>", unsafe_allow_html=True)
+                    
+                    if st.button("🎬 Lancer la génération (J'ai vérifié le texte) ✨",type="primary",use_container_width=True):
+                        with st.spinner("🎵 Génération du scénario en cours…"):
+                            try:
+                                data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
+                                st.session_state.scenario=data
+                                char,song,narrations,img_prompts=parse_scenario(data)
+                                st.session_state.char=char
+                                st.session_state.song=song
+                                st.session_state.narrations=narrations
+                                st.session_state.img_prompts=img_prompts
+                                st.session_state.step=2
+                                st.rerun()
+                            except json.JSONDecodeError:
+                                st.error("L'IA n'a pas renvoyé un format JSON valide.")
+                            except Exception as e:
+                                st.error(f"Erreur d'API : {e}")
+                                
                     c1,c2=st.columns([1,1])
                     with c1:
-                        if st.button("🎬 Lancer la génération (Confirmer le texte)",type="primary",use_container_width=True):
-                            with st.spinner("🎵 Génération du scénario en cours…"):
-                                try:
-                                    data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
-                                    st.session_state.scenario=data
-                                    char,song,narrations,img_prompts=parse_scenario(data)
-                                    st.session_state.char=char
-                                    st.session_state.song=song
-                                    st.session_state.narrations=narrations
-                                    st.session_state.img_prompts=img_prompts
-                                    st.session_state.step=2
-                                    st.rerun()
-                                except json.JSONDecodeError:
-                                    st.error("L'IA n'a pas renvoyé un format JSON valide.")
-                                except Exception as e:
-                                    st.error(f"Erreur d'API : {e}")
-                    with c2:
-                        if st.button("🔄 Proposer d'autres variantes",use_container_width=True):
+                        if st.button("🔄 Autre chose (Nouvelles IA propositions)",use_container_width=True):
                             with st.spinner("🤖 Recherche de nouvelles formulations..."):
                                 try:
                                     st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Erreur : {e}")
+                    with c2:
+                        if st.button("✏️ Je préfère écrire moi-même",use_container_width=True):
+                            st.session_state.val = None
+                            st.session_state.confirmed_yes = False
+                            st.rerun()
 
                 elif st.session_state.confirmed_no:
                     st.markdown(user_bubble("❌ Non, l'analyse est incorrecte."), unsafe_allow_html=True)
@@ -1042,16 +1066,16 @@ def main():
                     st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
                     c1,c2 = st.columns([1,1])
                     with c1:
-                        if st.button("✍️ Réécrire complètement",use_container_width=True):
-                            st.session_state.val=None; st.session_state.confirmed_no=False; st.session_state.betise=""; st.rerun()
-                    with c2:
-                        if st.button("🔄 Générer d'autres approches",use_container_width=True):
+                        if st.button("🔄 Générer d'autres approches IA",use_container_width=True):
                             with st.spinner("🤖 Analyse en cours..."):
                                 try:
                                     st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Erreur : {e}")
+                    with c2:
+                        if st.button("✍️ Réécrire de zéro",use_container_width=True):
+                            st.session_state.val=None; st.session_state.confirmed_no=False; st.session_state.betise=""; st.rerun()
 
             else:
                 # Non valide
@@ -1067,6 +1091,7 @@ def main():
                         if st.button(f"→ Utiliser : {s}",key=f"sg_{sid}",use_container_width=True):
                             st.session_state.betise=s; st.session_state.val=None; st.rerun()
 
+                st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
                 if st.button("✍️ Réécrire de zéro",type="primary",use_container_width=True):
                     st.session_state.val=None; st.session_state.betise=""; st.rerun()
 

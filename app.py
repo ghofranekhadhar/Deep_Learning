@@ -201,9 +201,10 @@ def _call(api_key: str, prompt: str, max_tok: int = 800) -> dict:
     m = c.chat.completions.create(
         model=Cfg.MODEL,
         max_tokens=max_tok,
+        response_format={"type": "json_object"},
         messages=[
             {"role": "system",
-             "content": "Tu es un assistant qui répond UNIQUEMENT en JSON valide, sans aucun texte avant ou après, sans markdown."},
+             "content": "Tu es un assistant qui répond UNIQUEMENT en JSON valide."},
             {"role": "user", "content": prompt}
         ]
     )
@@ -1084,18 +1085,26 @@ def main():
             
             st.write("🖼️ Génération des décors avec l'IA (Images)...")
             import urllib.request, urllib.parse
-            pb_bg = st.progress(0, text="Téléchargement des images d'arrière-plan…")
+            import time
+            pb_bg = st.progress(0, text="Téléchargement des images d'arrière-plan avec précaution…")
             for i, scene in enumerate(scenes):
-                try:
-                    # Prompt styling pour image enfantine stable
-                    prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
-                    url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
-                    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                    with urllib.request.urlopen(req) as resp:
-                        # On télécharge l'image
-                        scene.bg_img = Image.open(resp).convert("RGBA").resize((Cfg.SIZE, Cfg.SIZE))
-                except Exception as e:
-                    scene.bg_img = None # Repli sur draw_bg si problème
+                succes = False
+                for tentative in range(3):
+                    try:
+                        # Prompt styling pour image enfantine stable
+                        prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
+                        url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
+                        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            # On télécharge l'image
+                            scene.bg_img = Image.open(resp).convert("RGBA").resize((Cfg.SIZE, Cfg.SIZE))
+                            succes = True
+                            break
+                    except Exception as e:
+                        time.sleep(2) # On met en pause 2 secondes pour calmer l'API
+                
+                if not succes:
+                    scene.bg_img = None # Repli sur draw_bg SEULEMENT si ça a raté 3 fois
                 pb_bg.progress((i+1)/len(scenes), text=f"Décor {i+1}/{len(scenes)}")
 
             st.write("🎨 Rendu vidéo frame par frame...")

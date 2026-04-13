@@ -989,26 +989,45 @@ def main():
                     st.markdown(ai_bubble(msg), unsafe_allow_html=True)
 
                     st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
+                    st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Actions rapides :</b></div>", unsafe_allow_html=True)
+                    
+                    if st.button("🎬 Générer tout de suite (J'approuve le texte) ✨",type="primary",use_container_width=True):
+                        with st.spinner("🎵 Génération du scénario en cours…"):
+                            try:
+                                data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
+                                st.session_state.scenario=data
+                                char,song,narrations,img_prompts=parse_scenario(data)
+                                st.session_state.char=char
+                                st.session_state.song=song
+                                st.session_state.narrations=narrations
+                                st.session_state.img_prompts=img_prompts
+                                st.session_state.step=2
+                                st.rerun()
+                            except json.JSONDecodeError:
+                                st.error("L'IA n'a pas renvoyé un format JSON valide.")
+                            except Exception as e:
+                                st.error(f"Erreur d'API : {e}")
+
                     cb1,cb2=st.columns([1,1])
                     with cb1:
-                        if st.button("✅ Oui, valider l'analyse",type="primary",use_container_width=True):
+                        if st.button("✨ Valider et voir les enrichissements",use_container_width=True):
                             st.session_state.confirmed_yes=True; st.rerun()
                     with cb2:
-                        if st.button("❌ Non, corriger",use_container_width=True):
+                        if st.button("❌ L'analyse est incorrecte",use_container_width=True):
                             st.session_state.confirmed_no=True; st.rerun()
 
                 elif st.session_state.confirmed_yes:
-                    st.markdown(user_bubble("✅ Oui, l'analyse est correcte."), unsafe_allow_html=True)
+                    st.markdown(user_bubble("✨ Explorer les enrichissements."), unsafe_allow_html=True)
                     
-                    msg = "<div style='font-weight:600;color:#15803d;margin-bottom:8px;'>Excellent. Base de travail validée.</div>"
-                    msg += "<div style='margin-bottom:10px;font-size:0.95rem;'>Afin d'optimiser la dimension éducative de l'animation, mon algorithme vous suggère quelques enrichissements :</div>"
-                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;'>Cliquez sur l'une des propositions ci-dessous pour l'ajouter automatiquement à votre description ci-dessus.</div>"
+                    msg = "<div style='font-weight:600;color:#15803d;margin-bottom:8px;'>✓ Analyse validée.</div>"
+                    msg += "<div style='margin-bottom:10px;font-size:0.95rem;'>Afin de maximiser l'impact pédagogique du scénario, notre algorithme éducatif vous propose ces enrichissements de contenu :</div>"
+                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;'>Cliquez sur la proposition la plus pertinente pour l'ajouter automatiquement à votre description ci-dessus.</div>"
                     st.markdown(ai_bubble(msg), unsafe_allow_html=True)
                     
                     st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
                     
                     for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"➕ Ajouter : {s}", key=f"add_sugg_{sid}", use_container_width=True):
+                        if st.button(f"➕ Intégrer : {s}", key=f"add_sugg_{sid}", use_container_width=True):
                             b = st.session_state.betise.strip()
                             if b and not (b.endswith(".") or b.endswith(",") or b.endswith("!") or b.endswith("?")): b+=","
                             if b: b+=" "
@@ -1016,10 +1035,10 @@ def main():
                             st.rerun()
                             
                     st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                    st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Actions :</b></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Finalisation :</b></div>", unsafe_allow_html=True)
                     
-                    if st.button("🎬 Lancer la génération (J'ai vérifié le texte) ✨",type="primary",use_container_width=True):
-                        with st.spinner("🎵 Génération du scénario en cours…"):
+                    if st.button("🎬 Lancer la génération du scénario ✨",type="primary",use_container_width=True):
+                        with st.spinner("🎵 Génération narrative en cours…"):
                             try:
                                 data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
                                 st.session_state.scenario=data
@@ -1037,15 +1056,15 @@ def main():
                                 
                     c1,c2=st.columns([1,1])
                     with c1:
-                        if st.button("🔄 Autre chose (Nouvelles IA propositions)",use_container_width=True):
-                            with st.spinner("🤖 Recherche de nouvelles formulations..."):
+                        if st.button("🔄 Proposer d'autres pistes IA",use_container_width=True):
+                            with st.spinner("🤖 Calcul de nouvelles pistes..."):
                                 try:
                                     st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Erreur : {e}")
                     with c2:
-                        if st.button("✏️ Je préfère écrire moi-même",use_container_width=True):
+                        if st.button("✏️ Ajouter moi-même des détails",use_container_width=True):
                             st.session_state.val = None
                             st.session_state.confirmed_yes = False
                             st.rerun()

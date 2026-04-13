@@ -216,15 +216,22 @@ def validate_ai(betise: str, api_key: str) -> dict:
     return _call(api_key, VAL_PROMPT.replace("{betise}", betise), 900)
 
 def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
-    t = THEMES.get(val.get("theme", "general"), THEMES["general"])
+    theme_val = val.get("theme") or "general"
+    t = THEMES.get(theme_val, THEMES["general"])
     p = SCN_PROMPT.replace("{betise}", betise).replace("{theme_desc}", t["desc"])
-    p = p.replace("{prenom}", val.get("prenom", "l'enfant"))
-    p = p.replace("{age}", str(val.get("age", 5)))
-    p = p.replace("{genre}", val.get("genre", "garçon"))
+    prenom = val.get("prenom") or "l'enfant"
+    age = val.get("age") or 5
+    genre = val.get("genre") or "garçon"
+    p = p.replace("{prenom}", str(prenom))
+    p = p.replace("{age}", str(age))
+    p = p.replace("{genre}", str(genre))
     return _call(api_key, p, 3000)
 
 def parse_scenario(d: dict) -> tuple:
-    char = Character(prenom=d.get("prenom",""), age=int(d.get("age",5)), genre=d.get("genre","garçon"))
+    prenom = d.get("prenom") or ""
+    age = d.get("age") or 5
+    genre = d.get("genre") or "garçon"
+    char = Character(prenom=str(prenom), age=int(age), genre=str(genre))
     s = d["song"]
     song = SongData(titre=s.get("titre",""), intro=s.get("intro",""), acte1=s.get("acte1",""),
         acte2=s.get("acte2",""), refrain1=s.get("refrain1",""), acte3=s.get("acte3",""),

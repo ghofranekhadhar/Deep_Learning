@@ -979,122 +979,68 @@ def main():
             st.write("") # espacement
 
             if v.get("valide"):
-                if not st.session_state.confirmed_yes and not st.session_state.confirmed_no:
-                    msg = f"<div style='margin-bottom:8px;font-size:0.95rem;'>J'ai analysé votre description. Voici les éléments clés retenus :</div>"
-                    msg += f"<div style='background:#f8fafc;border-left:3px solid #6366f1;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.9rem;'>"
-                    msg += f"<b style='color:#334155;'>Événement :</b> {v.get('comprehension','')}<br>"
-                    msg += f"<b style='color:#334155;'>Profil :</b> {'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} ({v.get('age','')} ans)<br>"
-                    msg += f"<b style='color:#334155;'>Alerte :</b> ⚠️ {v.get('danger','')}</div>"
-                    msg += "<div style='font-weight:600;font-size:0.95rem;'>Cette analyse correspond-elle à vos attentes ?</div>"
-                    st.markdown(ai_bubble(msg), unsafe_allow_html=True)
+                msg = f"<div style='margin-bottom:8px;font-size:0.95rem;'>J'ai analysé votre description. Voici les éléments clés retenus :</div>"
+                msg += f"<div style='background:#f8fafc;border-left:3px solid #6366f1;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.9rem;'>"
+                msg += f"<b style='color:#334155;'>Événement analysé :</b> {v.get('comprehension','')}<br>"
+                msg += f"<b style='color:#334155;'>Profil :</b> {'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} ({v.get('age','')} ans)<br>"
+                msg += f"<b style='color:#334155;'>Alerte :</b> ⚠️ {v.get('danger','')}</div>"
+                
+                if sugg:
+                    msg += "<div style='margin-top:14px;font-weight:600;font-size:0.95rem;color:#15803d;'>✨ Pistes d'enrichissement pédagogique :</div>"
+                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;margin-bottom:8px;'>Pour maximiser l'impact du scénario, vous pouvez intégrer l'une de ces propositions :</div>"
+                
+                st.markdown(ai_bubble(msg), unsafe_allow_html=True)
 
-                    st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
-                    st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Actions rapides :</b></div>", unsafe_allow_html=True)
-                    
-                    if st.button("🎬 Générer tout de suite (J'approuve le texte) ✨",type="primary",use_container_width=True):
-                        with st.spinner("🎵 Génération du scénario en cours…"):
-                            try:
-                                data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
-                                st.session_state.scenario=data
-                                char,song,narrations,img_prompts=parse_scenario(data)
-                                st.session_state.char=char
-                                st.session_state.song=song
-                                st.session_state.narrations=narrations
-                                st.session_state.img_prompts=img_prompts
-                                st.session_state.step=2
-                                st.rerun()
-                            except json.JSONDecodeError:
-                                st.error("L'IA n'a pas renvoyé un format JSON valide.")
-                            except Exception as e:
-                                st.error(f"Erreur d'API : {e}")
-
-                    cb1,cb2=st.columns([1,1])
-                    with cb1:
-                        if st.button("✨ Valider et voir les enrichissements",use_container_width=True):
-                            st.session_state.confirmed_yes=True; st.rerun()
-                    with cb2:
-                        if st.button("❌ L'analyse est incorrecte",use_container_width=True):
-                            st.session_state.confirmed_no=True; st.rerun()
-
-                elif st.session_state.confirmed_yes:
-                    st.markdown(user_bubble("✨ Explorer les enrichissements."), unsafe_allow_html=True)
-                    
-                    msg = "<div style='font-weight:600;color:#15803d;margin-bottom:8px;'>✓ Analyse validée.</div>"
-                    msg += "<div style='margin-bottom:10px;font-size:0.95rem;'>Afin de maximiser l'impact pédagogique du scénario, notre algorithme éducatif vous propose ces enrichissements de contenu :</div>"
-                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;'>Cliquez sur la proposition la plus pertinente pour l'ajouter automatiquement à votre description ci-dessus.</div>"
-                    st.markdown(ai_bubble(msg), unsafe_allow_html=True)
-                    
-                    st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
-                    
+                st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
+                
+                if sugg:
                     for sid, s in enumerate(sugg[:3]):
                         if st.button(f"➕ Intégrer : {s}", key=f"add_sugg_{sid}", use_container_width=True):
                             b = st.session_state.betise.strip()
                             if b and not (b.endswith(".") or b.endswith(",") or b.endswith("!") or b.endswith("?")): b+=","
                             if b: b+=" "
                             st.session_state.betise = b + s
+                            with st.spinner("🤖 Mise à jour de l'analyse avec votre ajout..."):
+                                try:
+                                    st.session_state.val = validate_ai(st.session_state.betise, st.session_state.api_key)
+                                except Exception as e:
+                                    st.error(f"Erreur d'API : {e}")
                             st.rerun()
-                            
-                    st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                    st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Finalisation :</b></div>", unsafe_allow_html=True)
-                    
-                    if st.button("🎬 Lancer la génération du scénario ✨",type="primary",use_container_width=True):
-                        with st.spinner("🎵 Génération narrative en cours…"):
+
+                st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Finalisation (L'analyse vous convient-elle ?) :</b></div>", unsafe_allow_html=True)
+                
+                if st.button("🎬 Merveilleux, Lancer la génération !",type="primary",use_container_width=True):
+                    with st.spinner("🎵 Génération narrative en cours…"):
+                        try:
+                            data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
+                            st.session_state.scenario=data
+                            char,song,narrations,img_prompts=parse_scenario(data)
+                            st.session_state.char=char
+                            st.session_state.song=song
+                            st.session_state.narrations=narrations
+                            st.session_state.img_prompts=img_prompts
+                            st.session_state.step=2
+                            st.rerun()
+                        except json.JSONDecodeError:
+                            st.error("L'IA n'a pas renvoyé un format JSON valide.")
+                        except Exception as e:
+                            st.error(f"Erreur d'API : {e}")
+
+                st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;margin-top:16px;'><b>Ou l'analyse est incorrecte ?</b></div>", unsafe_allow_html=True)
+                c1,c2=st.columns([1,1])
+                with c1:
+                    if st.button("🔄 L'IA s'est trompée (Nouvelles pistes)",use_container_width=True):
+                        with st.spinner("🤖 Calcul de nouvelles interprétations..."):
                             try:
-                                data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
-                                st.session_state.scenario=data
-                                char,song,narrations,img_prompts=parse_scenario(data)
-                                st.session_state.char=char
-                                st.session_state.song=song
-                                st.session_state.narrations=narrations
-                                st.session_state.img_prompts=img_prompts
-                                st.session_state.step=2
+                                st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
                                 st.rerun()
-                            except json.JSONDecodeError:
-                                st.error("L'IA n'a pas renvoyé un format JSON valide.")
                             except Exception as e:
-                                st.error(f"Erreur d'API : {e}")
-                                
-                    c1,c2=st.columns([1,1])
-                    with c1:
-                        if st.button("🔄 Proposer d'autres pistes IA",use_container_width=True):
-                            with st.spinner("🤖 Calcul de nouvelles pistes..."):
-                                try:
-                                    st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"Erreur : {e}")
-                    with c2:
-                        if st.button("✏️ Ajouter moi-même des détails",use_container_width=True):
-                            st.session_state.val = None
-                            st.session_state.confirmed_yes = False
-                            st.rerun()
-
-                elif st.session_state.confirmed_no:
-                    st.markdown(user_bubble("❌ Non, l'analyse est incorrecte."), unsafe_allow_html=True)
-                    msg = "<div style='font-weight:600;color:#b45309;margin-bottom:8px;'>Veuillez m'en excuser.</div>"
-                    msg += "<div style='margin-bottom:12px;font-size:0.95rem;'>L'environnement d'analyse s'est potentiellement trompé sur l'action centrale. Voici d'autres interprétations possibles de votre saisie :</div>"
-                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;'>(Cliquez sur une phrase pour remplacer votre description)</div>"
-                    st.markdown(ai_bubble(msg), unsafe_allow_html=True)
-                    
-                    st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
-                    
-                    for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"🔄 Remplacer par : {s}", key=f"sugg_no_{sid}", use_container_width=True):
-                            st.session_state.betise=s; st.session_state.val=None; st.session_state.confirmed_no=False; st.rerun()
-
-                    st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                    c1,c2 = st.columns([1,1])
-                    with c1:
-                        if st.button("🔄 Générer d'autres approches IA",use_container_width=True):
-                            with st.spinner("🤖 Analyse en cours..."):
-                                try:
-                                    st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"Erreur : {e}")
-                    with c2:
-                        if st.button("✍️ Réécrire de zéro",use_container_width=True):
-                            st.session_state.val=None; st.session_state.confirmed_no=False; st.session_state.betise=""; st.rerun()
+                                st.error(f"Erreur : {e}")
+                with c2:
+                    if st.button("✏️ Je préfère corriger mon texte",use_container_width=True):
+                        st.session_state.val = None
+                        st.rerun()
 
             else:
                 # Non valide

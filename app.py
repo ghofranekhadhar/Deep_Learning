@@ -920,8 +920,16 @@ def main():
         betise=st.text_area("Bêtise",value=st.session_state.betise,
             placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques avec ses doigts",
             height=110,label_visibility="collapsed")
+        
         if betise != st.session_state.betise:
             st.session_state.betise = betise
+            # Si une analyse était déjà affichée, la mettre à jour automatiquement
+            if st.session_state.val and st.session_state.api_key.strip() and _GROQ_OK:
+                with st.spinner("🤖 Mise à jour automatique de l'analyse..."):
+                    try:
+                        st.session_state.val = validate_ai(betise, st.session_state.api_key)
+                    except Exception:
+                        st.session_state.val = None
 
         def ai_bubble(html_content):
             hdr = '<div style="font-size:0.75rem;font-weight:800;color:#6366f1;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🤖 Assistant Scénariste</div>'
@@ -1072,7 +1080,15 @@ def main():
                              use_container_width=True,help=ex["text"]):
                     st.session_state.betise=ex["text"]
                     st.session_state.theme=ex["theme"]
-                    st.session_state.val=None
+                    if st.session_state.api_key.strip() and _GROQ_OK:
+                        with st.spinner("🤖 Chargement de l'exemple..."):
+                            try:
+                                st.session_state.val = validate_ai(ex["text"], st.session_state.api_key)
+                            except:
+                                st.session_state.val = None
+                    else:
+                        st.session_state.val = None
+                        
                     st.session_state.confirmed_yes=False
                     st.session_state.confirmed_no=False
                     st.rerun()

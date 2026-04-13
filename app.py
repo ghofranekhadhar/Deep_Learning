@@ -761,11 +761,14 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
 .step-lbl.done{color:#16a34a!important;}
 .step-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
 
-/* Validation inline */
-.val-box{border-radius:14px;padding:1.25rem 1.5rem;margin:1rem 0;}
-.val-ok{background:#f0fdf4;border:1.5px solid #86efac;}
-.val-warn{background:#fffbeb;border:1.5px solid #fde68a;}
-.val-err{background:#fef2f2;border:1.5px solid #fca5a5;}
+/* Validation inline & Chat */
+.chat-row { display:flex; margin-top: 1.2rem; width: 100%; }
+.chat-row.user { justify-content: flex-end; }
+.chat-row.ai { justify-content: flex-start; }
+.chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 18px; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.chat-bubble.user { background: #3b82f6; color: #ffffff; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(59,130,246,0.25); }
+.chat-bubble.ai { background: #ffffff; color: #1e293b; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
+.chat-avatar { width: 38px; height: 38px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 1.4rem; background: #e2e8f0; margin: 0 12px 0 0; flex-shrink: 0; border: 1px solid #cbd5e1; }
 
 /* Char card */
 .char-pill{display:inline-flex;align-items:center;gap:6px;
@@ -919,6 +922,11 @@ def main():
             height=110,label_visibility="collapsed")
         st.session_state.betise=betise
 
+        def ai_bubble(html_content):
+            return f'<div class="chat-row ai"><div class="chat-avatar">🤖</div><div class="chat-bubble ai">{html_content}</div></div>'
+        def user_bubble(html_content):
+            return f'<div class="chat-row user"><div class="chat-bubble user">{html_content}</div></div>'
+
         # Bouton analyser si on n'a pas encore de résultat
         if not st.session_state.val:
             if st.button("🔍 Vérifier ma phrase",type="primary",use_container_width=True):
@@ -943,98 +951,114 @@ def main():
                         except Exception as e:
                             st.error(f"Erreur API Groq : {e}")
 
-        # ── RÉSULTAT VALIDATION INLINE SOUS LE CHAMP ──
+        # ── RÉSULTAT VALIDATION CHAT ──
         if st.session_state.val:
             v=st.session_state.val
             t=THEMES.get(st.session_state.theme,THEMES["general"])
             sugg=v.get("suggestions",[])
 
+            st.write("") # espacement
+
             if v.get("valide"):
                 if not st.session_state.confirmed_yes and not st.session_state.confirmed_no:
-                    st.markdown(f"""<div class="val-box val-ok">
-                    <p style="font-size:1rem;color:#15803d;margin:0 0 10px;">
-                        <b>🤔 J'ai compris ceci :</b> {v.get("comprehension","")}<br>
-                        <i>Est-ce que c'est bien ça ?</i>
-                    </p>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                        <span class="char-pill">{'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} · {v.get('age','')} ans</span>
-                        <span class="danger-pill">⚠️ {v.get('danger','')}</span>
-                        <span class="char-pill">{t['label']}</span>
-                    </div>
-                    </div>""",unsafe_allow_html=True)
+                    msg = f"<b>🤔 J'ai analysé ta phrase. Voici ce que j'ai compris :</b><br><br>"
+                    msg += f"{v.get('comprehension','')}<br><br>"
+                    msg += f"<i>👧/👦 {v.get('prenom','?')} · {v.get('age','')} ans | ⚠️ {v.get('danger','')}</i><br><br>"
+                    msg += "<b>Est-ce que c'est bien ça ?</b>"
+                    st.markdown(ai_bubble(msg), unsafe_allow_html=True)
 
+                    st.markdown("<div style='margin-top:12px;'></div>",unsafe_allow_html=True)
                     cb1,cb2=st.columns([1,1])
                     with cb1:
-                        if st.button("✅ OUI",type="primary",use_container_width=True):
+                        if st.button("✅ OUI, c'est bien ça",type="primary",use_container_width=True):
                             st.session_state.confirmed_yes=True; st.rerun()
                     with cb2:
                         if st.button("❌ NON",use_container_width=True):
                             st.session_state.confirmed_no=True; st.rerun()
 
                 elif st.session_state.confirmed_yes:
-                    st.markdown("""<div class="val-box val-ok" style="padding:1rem;">
-                    <b style="color:#166534;font-size:0.95rem;">✨ Super ! Pour un meilleur résultat, choisis une phrase enrichie ci-dessous ou garde la tienne :</b>
-                    </div>""",unsafe_allow_html=True)
+                    st.markdown(user_bubble("✅ Oui, c'est bien ça !"), unsafe_allow_html=True)
                     
-                    def _gen_and_go(txt):
-                        with st.spinner("🎵 Génération scénario et images…"):
-                            try:
-                                data=scenario_ai(txt,v,st.session_state.api_key)
-                                st.session_state.scenario=data
-                                char,song,narrations,img_prompts=parse_scenario(data)
-                                st.session_state.char=char
-                                st.session_state.song=song
-                                st.session_state.narrations=narrations
-                                st.session_state.img_prompts=img_prompts
-                                st.session_state.step=2
-                                st.rerun()
-                            except json.JSONDecodeError:
-                                st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
-                            except Exception as e:
-                                st.error(f"Erreur API Groq : {e}")
-
+                    msg = "<b>✨ Super !</b> Pour rendre ta vidéo encore plus pédagogique, j'ai généré des versions enrichies.<br><br>"
+                    msg += "Tu peux cliquer sur l'une d'elles pour <b>l'ajouter</b> à ta bêtise actuelle (voir champ de texte ci-dessus)."
+                    st.markdown(ai_bubble(msg), unsafe_allow_html=True)
+                    
+                    st.markdown("<div style='margin-top:12px;'></div>",unsafe_allow_html=True)
+                    
                     for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"✨ {s}", key=f"sugg_yes_{sid}", use_container_width=True):
-                            _gen_and_go(s)
+                        if st.button(f"➕ {s}", key=f"add_sugg_{sid}", use_container_width=True):
+                            b = st.session_state.betise.strip()
+                            if b and not (b.endswith(".") or b.endswith(",") or b.endswith("!") or b.endswith("?")): b+=","
+                            if b: b+=" "
+                            st.session_state.betise = b + s
+                            st.rerun()
                             
-                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin:12px 0;'>", unsafe_allow_html=True)
                     c1,c2=st.columns([1,1])
                     with c1:
-                        if st.button("✅ Garder ma propre phrase",type="primary",use_container_width=True):
-                            _gen_and_go(st.session_state.betise)
+                        if st.button("🎬 Lancer la génération de la vidéo",type="primary",use_container_width=True):
+                            with st.spinner("🎵 Génération scénario et images…"):
+                                try:
+                                    data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
+                                    st.session_state.scenario=data
+                                    char,song,narrations,img_prompts=parse_scenario(data)
+                                    st.session_state.char=char
+                                    st.session_state.song=song
+                                    st.session_state.narrations=narrations
+                                    st.session_state.img_prompts=img_prompts
+                                    st.session_state.step=2
+                                    st.rerun()
+                                except json.JSONDecodeError:
+                                    st.error("L'IA n'a pas renvoyé un JSON valide.")
+                                except Exception as e:
+                                    st.error(f"Erreur API Groq : {e}")
                     with c2:
-                        if st.button("✍️ Autre chose",use_container_width=True):
-                            st.session_state.val=None; st.session_state.confirmed_yes=False; st.session_state.betise=""; st.rerun()
+                        if st.button("🔄 L'IA me propose d'autres phrases",use_container_width=True):
+                            with st.spinner("🤖 L'IA réfléchit..."):
+                                try:
+                                    st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erreur : {e}")
 
                 elif st.session_state.confirmed_no:
-                    st.markdown("""<div class="val-box val-warn" style="padding:1rem;">
-                    <b style="color:#92400e;font-size:0.95rem;">Désolé ! Peut-être voulais-tu dire l'une de ces phrases ?</b>
-                    </div>""",unsafe_allow_html=True)
+                    st.markdown(user_bubble("❌ Non, ce n'est pas ça."), unsafe_allow_html=True)
+                    msg = "<b>Désolé !</b> L'IA n'a pas bien compris. Peut-être voulais-tu dire l'une de ces phrases ?<br><i>(Clique pour remplacer ta bêtise)</i>"
+                    st.markdown(ai_bubble(msg), unsafe_allow_html=True)
+                    
+                    st.markdown("<div style='margin-top:12px;'></div>",unsafe_allow_html=True)
                     
                     for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"🔄 {s}", key=f"sugg_no_{sid}", use_container_width=True):
+                        if st.button(f"🔄 Remplacer par : {s}", key=f"sugg_no_{sid}", use_container_width=True):
                             st.session_state.betise=s; st.session_state.val=None; st.session_state.confirmed_no=False; st.rerun()
 
-                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
-                    if st.button("✍️ Autre chose (Réécrire ma bêtise)",use_container_width=True):
-                        st.session_state.val=None; st.session_state.confirmed_no=False; st.session_state.betise=""; st.rerun()
+                    st.markdown("<hr style='margin:12px 0;'>", unsafe_allow_html=True)
+                    c1,c2 = st.columns([1,1])
+                    with c1:
+                        if st.button("✍️ Réécrire de zéro",use_container_width=True):
+                            st.session_state.val=None; st.session_state.confirmed_no=False; st.session_state.betise=""; st.rerun()
+                    with c2:
+                        if st.button("🔄 Proposer d'autres phrases",use_container_width=True):
+                            with st.spinner("🤖 L'IA réfléchit..."):
+                                try:
+                                    st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erreur : {e}")
 
             else:
                 # Non valide
-                st.markdown(f"""<div class="val-box val-err">
-                <div style="font-size:1rem;font-weight:800;color:#991b1b;margin-bottom:8px;">
-                    ⚠️ Ce que tu as écrit ne semble pas adapté</div>
-                <p style="font-size:.88rem;color:#b91c1c;margin:0 0 10px;">
-                    {v.get("raison","")}</p>
-                </div>""",unsafe_allow_html=True)
+                msg = f"<b>⚠️ Ce que tu as écrit ne semble pas adapté</b><br><br><span style='color:#b91c1c;'>{v.get('raison','')}</span>"
+                st.markdown(ai_bubble(msg), unsafe_allow_html=True)
 
+                st.markdown("<div style='margin-top:12px;'></div>",unsafe_allow_html=True)
                 if sugg:
-                    st.markdown("#### 💡 Essaie plutôt :")
+                    st.markdown("<b>💡 Essaie plutôt :</b>", unsafe_allow_html=True)
                     for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"→ {s}",key=f"sg_{sid}",use_container_width=True):
+                        if st.button(f"→ Remplacer par : {s}",key=f"sg_{sid}",use_container_width=True):
                             st.session_state.betise=s; st.session_state.val=None; st.rerun()
 
-                if st.button("✍️ Autre chose (Réécrire)",type="primary",use_container_width=True):
+                if st.button("✍️ Réécrire de zéro",type="primary",use_container_width=True):
                     st.session_state.val=None; st.session_state.betise=""; st.rerun()
 
         st.markdown("<br><hr>",unsafe_allow_html=True)

@@ -913,24 +913,6 @@ def main():
     #  ÉTAPE 1 — LA BÊTISE + VALIDATION INLINE
     # ══════════════════════════════════════
     if st.session_state.step==1:
-        st.markdown('<div class="card">'
-            '<span class="sec-title">✏️ Décris la bêtise de ton enfant</span></div>',
-            unsafe_allow_html=True)
-
-        betise=st.text_area("Bêtise",value=st.session_state.betise,
-            placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques avec ses doigts",
-            height=110,label_visibility="collapsed")
-        
-        if betise != st.session_state.betise:
-            st.session_state.betise = betise
-            # Si une analyse était déjà affichée, la mettre à jour automatiquement
-            if st.session_state.val and st.session_state.api_key.strip() and _GROQ_OK:
-                with st.spinner("🤖 Mise à jour automatique de l'analyse..."):
-                    try:
-                        st.session_state.val = validate_ai(betise, st.session_state.api_key)
-                    except Exception:
-                        st.session_state.val = None
-
         def ai_bubble(html_content):
             hdr = '<div style="font-size:0.75rem;font-weight:800;color:#6366f1;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🤖 Assistant Scénariste</div>'
             return f'<div class="chat-row ai"><div class="chat-bubble ai">{hdr}{html_content}</div></div>'
@@ -938,19 +920,31 @@ def main():
             hdr = '<div style="font-size:0.75rem;font-weight:800;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Vous</div>'
             return f'<div class="chat-row user"><div class="chat-bubble user">{hdr}{html_content}</div></div>'
 
-        c_clear, c_check = st.columns([1,3])
-        with c_clear:
-            if st.button("🗑️ Vider le texte", use_container_width=True):
-                st.session_state.betise = ""
-                st.session_state.val = None
-                st.session_state.confirmed_yes = False
-                st.session_state.confirmed_no = False
-                st.rerun()
+        st.markdown('<div class="card">'
+            '<span class="sec-title">💬 Étape 1 : Discussion avec l\'IA</span></div>',
+            unsafe_allow_html=True)
 
-        # Bouton analyser si on n'a pas encore de résultat
-        with c_check:
-            if not st.session_state.val:
-                if st.button("🔍 Lancer l'analyse IA",type="primary",use_container_width=True):
+        if not st.session_state.val:
+            msg_intro = "👋 <b>Bonjour parent !</b> Je suis l'Assistant Scénariste.<br>"
+            msg_intro += "Racontez-moi la bêtise de votre enfant (son prénom, son âge et ce qu'il a fait de dangereux ou d'interdit). Vous pouvez aussi utiliser l'un des exemples ci-dessous.<br>"
+            st.markdown(ai_bubble(msg_intro), unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            betise=st.text_area("Bêtise",value=st.session_state.betise,
+                placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques...",
+                height=110,label_visibility="collapsed")
+            
+            if betise != st.session_state.betise:
+                st.session_state.betise = betise
+                
+            c_clear, c_check = st.columns([1,3])
+            with c_clear:
+                if st.button("🗑️ Vider", use_container_width=True):
+                    st.session_state.betise = ""
+                    st.rerun()
+            with c_check:
+                if st.button("📤 Envoyer le message",type="primary",use_container_width=True):
                     if not st.session_state.api_key.strip():
                         st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
                     elif not st.session_state.betise.strip():
@@ -958,12 +952,10 @@ def main():
                     elif not _GROQ_OK:
                         st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
                     else:
-                        with st.spinner("🤖 L'IA vérifie ce que tu as écrit…"):
+                        with st.spinner("🤖 L'IA lit votre message…"):
                             try:
                                 result=validate_ai(st.session_state.betise,st.session_state.api_key)
                                 st.session_state.val=result
-                                st.session_state.confirmed_yes=False
-                                st.session_state.confirmed_no=False
                                 if result.get("theme") in THEMES:
                                     st.session_state.theme=result["theme"]
                                 st.rerun()
@@ -971,15 +963,12 @@ def main():
                                 st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
                             except Exception as e:
                                 st.error(f"Erreur API Groq : {e}")
-            else:
-                if st.button("🔙 Annuler et modifier le texte (Retour)", use_container_width=True):
-                    st.session_state.val = None
-                    st.session_state.confirmed_yes = False
-                    st.session_state.confirmed_no = False
-                    st.rerun()
 
-        # ── RÉSULTAT VALIDATION CHAT ──
-        if st.session_state.val:
+        else:
+            # ── RÉSULTAT VALIDATION CHAT ──
+            # Le parent a envoyé son texte, on l'affiche sous forme de message
+            st.markdown(user_bubble(st.session_state.betise), unsafe_allow_html=True)
+            
             v=st.session_state.val
             t=THEMES.get(st.session_state.theme,THEMES["general"])
             sugg=v.get("suggestions",[])
@@ -1046,7 +1035,7 @@ def main():
                             except Exception as e:
                                 st.error(f"Erreur : {e}")
                 with c2:
-                    if st.button("✏️ Je préfère corriger mon texte",use_container_width=True):
+                    if st.button("✏️ Modifier mon message",use_container_width=True):
                         st.session_state.val = None
                         st.rerun()
 
@@ -1065,8 +1054,8 @@ def main():
                             st.session_state.betise=s; st.session_state.val=None; st.rerun()
 
                 st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                if st.button("✍️ Réécrire de zéro",type="primary",use_container_width=True):
-                    st.session_state.val=None; st.session_state.betise=""; st.rerun()
+                if st.button("✏️ Modifier mon message",type="primary",use_container_width=True):
+                    st.session_state.val=None; st.rerun()
 
         st.markdown("<br><hr>",unsafe_allow_html=True)
 

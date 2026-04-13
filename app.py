@@ -1086,26 +1086,25 @@ def main():
             st.write("🖼️ Génération des décors avec l'IA (Images)...")
             import urllib.request, urllib.parse
             import time
-            pb_bg = st.progress(0, text="Téléchargement des images d'arrière-plan avec précaution…")
+            pb_bg = st.progress(0, text="Téléchargement garanti des images IA (cela prendra environ 1 minute)…")
             for i, scene in enumerate(scenes):
-                succes = False
-                for tentative in range(3):
+                # On s'assure d'obtenir une image générée par l'IA (pollinations) pour chaque scène
+                image_recue = False
+                for tentatives in range(10): # On insiste jusqu'à 10 fois pour éviter le fond basique
                     try:
-                        # Prompt styling pour image enfantine stable
                         prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
                         url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
                         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                         with urllib.request.urlopen(req, timeout=10) as resp:
-                            # On télécharge l'image
                             scene.bg_img = Image.open(resp).convert("RGBA").resize((Cfg.SIZE, Cfg.SIZE))
-                            succes = True
+                            image_recue = True
                             break
                     except Exception as e:
-                        time.sleep(2) # On met en pause 2 secondes pour calmer l'API
+                        time.sleep(1.5) # Le serveur bloque ? On attend 1.5s et on recommence.
                 
-                if not succes:
-                    scene.bg_img = None # Repli sur draw_bg SEULEMENT si ça a raté 3 fois
-                pb_bg.progress((i+1)/len(scenes), text=f"Décor {i+1}/{len(scenes)}")
+                if not image_recue:
+                    scene.bg_img = None
+                pb_bg.progress((i+1)/len(scenes), text=f"Décor IA {i+1}/{len(scenes)}")
 
             st.write("🎨 Rendu vidéo frame par frame...")
             pb=st.progress(0,text="Démarrage…")

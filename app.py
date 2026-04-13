@@ -854,7 +854,8 @@ def main():
     # ── SESSION ──
     defaults={"step":1,"api_key":"","betise":"","val":None,
               "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
-              "theme":"general","show_key":False,"analyzing":False}
+              "theme":"general","show_key":False,"analyzing":False,
+              "confirmed_yes":False,"confirmed_no":False}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
@@ -893,8 +894,8 @@ def main():
         if st.session_state.step>1:
             st.markdown("---")
             if st.button("🔄 Recommencer",use_container_width=True):
-                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme"]:
-                    st.session_state[k]=1 if k=="step" else "general"if k=="theme" else[]if k in["narrations","img_prompts"] else""if k=="betise" else None
+                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme","confirmed_yes","confirmed_no"]:
+                    st.session_state[k]=1 if k=="step" else "general"if k=="theme" else[]if k in["narrations","img_prompts"] else""if k=="betise" else False if k in["confirmed_yes","confirmed_no"] else None
                 st.rerun()
 
     # ── HÉRO ──
@@ -932,6 +933,8 @@ def main():
                         try:
                             result=validate_ai(st.session_state.betise,st.session_state.api_key)
                             st.session_state.val=result
+                            st.session_state.confirmed_yes=False
+                            st.session_state.confirmed_no=False
                             if result.get("theme") in THEMES:
                                 st.session_state.theme=result["theme"]
                             st.rerun()
@@ -944,41 +947,39 @@ def main():
         if st.session_state.val:
             v=st.session_state.val
             t=THEMES.get(st.session_state.theme,THEMES["general"])
+            sugg=v.get("suggestions",[])
 
             if v.get("valide"):
-                st.markdown(f"""<div class="val-box val-ok">
-                <p style="font-size:1rem;color:#15803d;margin:0 0 10px;">
-                    <b>🤔 J'ai compris ceci :</b> {v.get("comprehension","")}<br>
-                    <i>Est-ce que c'est bien ça (Vrai ou Faux) ?</i>
-                </p>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-                    <span class="char-pill">{'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} · {v.get('age','')} ans</span>
-                    <span class="danger-pill">⚠️ {v.get('danger','')}</span>
-                    <span class="char-pill">{t['label']}</span>
-                </div>
-                <p style="font-size:.82rem;color:#15803d;margin:0 0 6px;font-style:italic;">
-                    💬 {v.get('message_parent','')}
-                </p>
-                </div>""",unsafe_allow_html=True)
+                if not st.session_state.confirmed_yes and not st.session_state.confirmed_no:
+                    st.markdown(f"""<div class="val-box val-ok">
+                    <p style="font-size:1rem;color:#15803d;margin:0 0 10px;">
+                        <b>🤔 J'ai compris ceci :</b> {v.get("comprehension","")}<br>
+                        <i>Est-ce que c'est bien ça ?</i>
+                    </p>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span class="char-pill">{'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} · {v.get('age','')} ans</span>
+                        <span class="danger-pill">⚠️ {v.get('danger','')}</span>
+                        <span class="char-pill">{t['label']}</span>
+                    </div>
+                    </div>""",unsafe_allow_html=True)
 
-                # Conseils sécurité
-                conseils=v.get("conseils",[])
-                if conseils:
-                    tips="".join(f'<div class="tip-chip">{c}</div>'for c in conseils)
-                    st.markdown(f'<div style="margin:8px 0 4px;"><span class="sec-label">'
-                        f'🛡️ Conseils de sécurité générés</span></div>'
-                        f'<div class="tip-row">{tips}</div>',unsafe_allow_html=True)
+                    cb1,cb2=st.columns([1,1])
+                    with cb1:
+                        if st.button("✅ OUI",type="primary",use_container_width=True):
+                            st.session_state.confirmed_yes=True; st.rerun()
+                    with cb2:
+                        if st.button("❌ NON",use_container_width=True):
+                            st.session_state.confirmed_no=True; st.rerun()
 
-                st.markdown('<div style="font-size:.88rem;font-weight:700;color:#1e293b;'
-                    'margin:1rem 0 .5rem;">👆 Confirme ci-dessous :</div>',
-                    unsafe_allow_html=True)
-
-                cb1,cb2=st.columns([1,1])
-                with cb1:
-                    if st.button("✅ VRAI, générer la vidéo !",type="primary",use_container_width=True):
+                elif st.session_state.confirmed_yes:
+                    st.markdown("""<div class="val-box val-ok" style="padding:1rem;">
+                    <b style="color:#166534;font-size:0.95rem;">✨ Super ! Pour un meilleur résultat, choisis une phrase enrichie ci-dessous ou garde la tienne :</b>
+                    </div>""",unsafe_allow_html=True)
+                    
+                    def _gen_and_go(txt):
                         with st.spinner("🎵 Génération scénario et images…"):
                             try:
-                                data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
+                                data=scenario_ai(txt,v,st.session_state.api_key)
                                 st.session_state.scenario=data
                                 char,song,narrations,img_prompts=parse_scenario(data)
                                 st.session_state.char=char
@@ -991,10 +992,32 @@ def main():
                                 st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
                             except Exception as e:
                                 st.error(f"Erreur API Groq : {e}")
-                with cb2:
-                    if st.button("❌ FAUX, je corrige",use_container_width=True):
-                        st.session_state.val=None
-                        st.rerun()
+
+                    for sid, s in enumerate(sugg[:3]):
+                        if st.button(f"✨ {s}", key=f"sugg_yes_{sid}", use_container_width=True):
+                            _gen_and_go(s)
+                            
+                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+                    c1,c2=st.columns([1,1])
+                    with c1:
+                        if st.button("✅ Garder ma propre phrase",type="primary",use_container_width=True):
+                            _gen_and_go(st.session_state.betise)
+                    with c2:
+                        if st.button("✍️ Autre chose",use_container_width=True):
+                            st.session_state.val=None; st.session_state.confirmed_yes=False; st.session_state.betise=""; st.rerun()
+
+                elif st.session_state.confirmed_no:
+                    st.markdown("""<div class="val-box val-warn" style="padding:1rem;">
+                    <b style="color:#92400e;font-size:0.95rem;">Désolé ! Peut-être voulais-tu dire l'une de ces phrases ?</b>
+                    </div>""",unsafe_allow_html=True)
+                    
+                    for sid, s in enumerate(sugg[:3]):
+                        if st.button(f"🔄 {s}", key=f"sugg_no_{sid}", use_container_width=True):
+                            st.session_state.betise=s; st.session_state.val=None; st.session_state.confirmed_no=False; st.rerun()
+
+                    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
+                    if st.button("✍️ Autre chose (Réécrire ma bêtise)",use_container_width=True):
+                        st.session_state.val=None; st.session_state.confirmed_no=False; st.session_state.betise=""; st.rerun()
 
             else:
                 # Non valide
@@ -1005,15 +1028,14 @@ def main():
                     {v.get("raison","")}</p>
                 </div>""",unsafe_allow_html=True)
 
-                sugg=v.get("suggestions",[])
                 if sugg:
                     st.markdown("#### 💡 Essaie plutôt :")
-                    for s in sugg:
-                        if st.button(f"→ {s}",key=f"sg{s[:15]}"):
+                    for sid, s in enumerate(sugg[:3]):
+                        if st.button(f"→ {s}",key=f"sg_{sid}",use_container_width=True):
                             st.session_state.betise=s; st.session_state.val=None; st.rerun()
 
-                if st.button("✏️ Réécrire ma phrase",type="primary",use_container_width=True):
-                    st.session_state.val=None; st.rerun()
+                if st.button("✍️ Autre chose (Réécrire)",type="primary",use_container_width=True):
+                    st.session_state.val=None; st.session_state.betise=""; st.rerun()
 
         st.markdown("<br><hr>",unsafe_allow_html=True)
 
@@ -1021,14 +1043,15 @@ def main():
         st.markdown("<span class='sec-label'>💡 Quelques exemples pour t'inspirer :</span>",
                     unsafe_allow_html=True)
         cols=st.columns(3)
-        extended_examples = EXAMPLES + [{"icon":"✍️","label":"Autre chose","text":"","theme":"general"}]
-        for idx,ex in enumerate(extended_examples):
+        for idx,ex in enumerate(EXAMPLES):
             with cols[idx%3]:
-                if st.button(f"{ex['icon']} {ex['label']}",key=f"ex{idx}",
+                if st.button(f"{ex['icon']} {ex['label']}",key=f"ex_{idx}",
                              use_container_width=True,help=ex["text"]):
                     st.session_state.betise=ex["text"]
                     st.session_state.theme=ex["theme"]
                     st.session_state.val=None
+                    st.session_state.confirmed_yes=False
+                    st.session_state.confirmed_no=False
                     st.rerun()
 
     # ══════════════════════════════════════
@@ -1177,8 +1200,8 @@ def main():
         c1,c2=st.columns(2)
         with c1:
             if st.button("🔄 Créer une nouvelle vidéo",use_container_width=True,type="primary"):
-                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme"]:
-                    st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k in["narrations","img_prompts"] else "" if k=="betise" else None
+                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme","confirmed_yes","confirmed_no"]:
+                    st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k in["narrations","img_prompts"] else "" if k=="betise" else False if k in["confirmed_yes","confirmed_no"] else None
                 st.rerun()
         with c2:
             st.info("💡 Partage cette vidéo avec ton enfant pour apprendre en s'amusant!")

@@ -650,7 +650,43 @@ def gen_audio(char,song,folder,ph)->str:
         except Exception as e: st.warning(f"edge-tts: {e} → gTTS")
     if not ok:
         ph.info("🎙️ Génération voix..."); gTTS(text=txt,lang="fr",slow=True).save(vp)
-    return vp
+        
+    try:
+        ph.info("🎵 Ajout d'une musique douce en fond...")
+        from pydub import AudioSegment
+        import urllib.request
+        
+        # Lien vers une musique d'ambiance libre de droits et relaxante
+        bgm_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+        bgm_path = os.path.join(folder, "bgm.mp3")
+        
+        req = urllib.request.Request(bgm_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=15) as resp, open(bgm_path, 'wb') as f:
+            f.write(resp.read())
+            
+        voix_audio = AudioSegment.from_file(vp)
+        music_audio = AudioSegment.from_file(bgm_path)
+        
+        # Baisser fortement le volume de la musique (-15 décibels) pour entendre la voix
+        music_audio = music_audio - 15
+        
+        # Si la voix est plus longue que la musique, on répète la boucle musicale
+        while len(music_audio) < len(voix_audio):
+            music_audio += music_audio
+            
+        # Couper la musique exactement à la fin de la voix
+        music_audio = music_audio[:len(voix_audio)]
+        
+        # Mixer (superposer) les deux pistes
+        mix = voix_audio.overlay(music_audio)
+        
+        vp_mix = os.path.join(folder, "voix_mix.mp3")
+        mix.export(vp_mix, format="mp3")
+        return vp_mix
+        
+    except Exception as e:
+        # En cas d'erreur internet sur la musique, on retourne la voix seule.
+        return vp
 
 def encode_video(frames,audio,folder,prenom)->str:
     silent=os.path.join(folder,"_s.mp4"); final=os.path.join(folder,f"ANIME_{prenom.upper()}.mp4")

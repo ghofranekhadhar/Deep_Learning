@@ -918,24 +918,9 @@ def main():
             height=110,label_visibility="collapsed")
         st.session_state.betise=betise
 
-        # Exemples rapides
-        st.markdown('<span class="sec-label">💡 Exemples — clique pour remplir</span>',
-                    unsafe_allow_html=True)
-        cols=st.columns(3)
-        for idx,ex in enumerate(EXAMPLES):
-            with cols[idx%3]:
-                if st.button(f"{ex['icon']} {ex['label']}",key=f"ex{idx}",
-                             use_container_width=True,help=ex["text"]):
-                    st.session_state.betise=ex["text"]
-                    st.session_state.theme=ex["theme"]
-                    st.session_state.val=None
-                    st.rerun()
-
-        st.markdown("<br>",unsafe_allow_html=True)
-
-        # Bouton analyser
+        # Bouton analyser si on n'a pas encore de résultat
         if not st.session_state.val:
-            if st.button("🔍 Analyser avec l'IA Groq",type="primary",use_container_width=True):
+            if st.button("🔍 Vérifier ma phrase",type="primary",use_container_width=True):
                 if not st.session_state.api_key.strip():
                     st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
                 elif not betise.strip():
@@ -943,7 +928,7 @@ def main():
                 elif not _GROQ_OK:
                     st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
                 else:
-                    with st.spinner("🤖 L'IA Groq analyse ta phrase…"):
+                    with st.spinner("🤖 L'IA vérifie ce que tu as écrit…"):
                         try:
                             result=validate_ai(st.session_state.betise,st.session_state.api_key)
                             st.session_state.val=result
@@ -955,17 +940,16 @@ def main():
                         except Exception as e:
                             st.error(f"Erreur API Groq : {e}")
 
-        # ── RÉSULTAT VALIDATION INLINE ──
+        # ── RÉSULTAT VALIDATION INLINE SOUS LE CHAMP ──
         if st.session_state.val:
             v=st.session_state.val
             t=THEMES.get(st.session_state.theme,THEMES["general"])
 
             if v.get("valide"):
                 st.markdown(f"""<div class="val-box val-ok">
-                <div style="font-size:1rem;font-weight:800;color:#166534;margin-bottom:10px;">
-                    ✅ L'IA a bien compris !</div>
-                <p style="font-size:.9rem;color:#15803d;margin:0 0 10px;">
-                    <b>Ce que j'ai compris :</b> {v.get("comprehension","")}
+                <p style="font-size:1rem;color:#15803d;margin:0 0 10px;">
+                    <b>🤔 J'ai compris ceci :</b> {v.get("comprehension","")}<br>
+                    <i>Est-ce que c'est bien ça (Vrai ou Faux) ?</i>
                 </p>
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
                     <span class="char-pill">{'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} · {v.get('age','')} ans</span>
@@ -986,12 +970,12 @@ def main():
                         f'<div class="tip-row">{tips}</div>',unsafe_allow_html=True)
 
                 st.markdown('<div style="font-size:.88rem;font-weight:700;color:#1e293b;'
-                    'margin:1rem 0 .5rem;">👆 Est-ce correct ? Confirme pour générer la vidéo :</div>',
+                    'margin:1rem 0 .5rem;">👆 Confirme ci-dessous :</div>',
                     unsafe_allow_html=True)
 
                 cb1,cb2=st.columns([1,1])
                 with cb1:
-                    if st.button("✅ Oui, générer le scénario!",type="primary",use_container_width=True):
+                    if st.button("✅ VRAI, générer la vidéo !",type="primary",use_container_width=True):
                         with st.spinner("🎵 Génération scénario et images…"):
                             try:
                                 data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
@@ -1008,7 +992,7 @@ def main():
                             except Exception as e:
                                 st.error(f"Erreur API Groq : {e}")
                 with cb2:
-                    if st.button("✏️ Non, modifier la phrase",use_container_width=True):
+                    if st.button("❌ FAUX, je corrige",use_container_width=True):
                         st.session_state.val=None
                         st.rerun()
 
@@ -1016,7 +1000,7 @@ def main():
                 # Non valide
                 st.markdown(f"""<div class="val-box val-err">
                 <div style="font-size:1rem;font-weight:800;color:#991b1b;margin-bottom:8px;">
-                    ⚠️ Ce contenu n'est pas adapté</div>
+                    ⚠️ Ce que tu as écrit ne semble pas adapté</div>
                 <p style="font-size:.88rem;color:#b91c1c;margin:0 0 10px;">
                     {v.get("raison","")}</p>
                 </div>""",unsafe_allow_html=True)
@@ -1030,6 +1014,22 @@ def main():
 
                 if st.button("✏️ Réécrire ma phrase",type="primary",use_container_width=True):
                     st.session_state.val=None; st.rerun()
+
+        st.markdown("<br><hr>",unsafe_allow_html=True)
+
+        # ── EXEMPLES EN DESSOUS (TOUJOURS AFFICHÉS POUR ENRICHIR) ──
+        st.markdown("<span class='sec-label'>💡 Quelques exemples pour t'inspirer :</span>",
+                    unsafe_allow_html=True)
+        cols=st.columns(3)
+        extended_examples = EXAMPLES + [{"icon":"✍️","label":"Autre chose","text":"","theme":"general"}]
+        for idx,ex in enumerate(extended_examples):
+            with cols[idx%3]:
+                if st.button(f"{ex['icon']} {ex['label']}",key=f"ex{idx}",
+                             use_container_width=True,help=ex["text"]):
+                    st.session_state.betise=ex["text"]
+                    st.session_state.theme=ex["theme"]
+                    st.session_state.val=None
+                    st.rerun()
 
     # ══════════════════════════════════════
     #  ÉTAPE 2 — SCÉNARIO

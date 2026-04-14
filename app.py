@@ -921,7 +921,7 @@ def main():
     defaults={"step":1,"api_key":"","betise":"","val":None,
               "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
               "theme":"general","show_key":False,"analyzing":False,
-              "confirmed_yes":False,"confirmed_no":False}
+              "confirmed_yes":False,"confirmed_no":False,"editing_msg":False}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
@@ -1035,12 +1035,21 @@ def main():
         st.markdown(ai_bubble(msg_intro, "09:00"), unsafe_allow_html=True)
 
         # ══════════════════════════════════════
-        # 2) MESSAGE DU PARENT — affiché si déjà envoyé
+        # 2) MESSAGE DU PARENT — avec bouton ✏️ intégré
         # ══════════════════════════════════════
         if st.session_state.betise.strip() and st.session_state.val is not None:
             import html as _html
             safe_betise = _html.escape(st.session_state.betise).replace("\n", "<br>")
-            st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
+            # Bulle parent à droite + bouton ✏️ sur la même ligne
+            _col_space, _col_edit, _col_bubble = st.columns([4, 0.7, 0.3])
+            with _col_space:
+                st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
+            with _col_edit:
+                st.write("")
+                if st.button("✏️", key="btn_edit_msg", help="Modifier ce message",
+                             use_container_width=True):
+                    st.session_state.editing_msg = True
+                    st.rerun()
 
         # ══════════════════════════════════════
         # 3) RÉPONSE DE L'IA — affichée sous le message parent
@@ -1097,52 +1106,53 @@ def main():
                         except Exception as e:
                             st.error(f"Erreur d'API : {e}")
 
-                st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;margin-top:16px;'><b>Ou l'analyse est incorrecte ?</b></div>", unsafe_allow_html=True)
-                c1, c2 = st.columns([1,1])
-                with c1:
-                    if st.button("🔄 L'IA s'est trompée (Nouvelles pistes)", use_container_width=True):
-                        with st.spinner("🤖 Calcul de nouvelles interprétations..."):
-                            try:
-                                st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Erreur : {e}")
-                with c2:
-                    if st.button("✏️ Modifier mon message", use_container_width=True):
-                        st.session_state.val = None
-                        st.session_state.betise = ""
-                        st.rerun()
+                if st.button("🔄 Nouvelle interprétation", use_container_width=True):
+                    with st.spinner("🤖 Calcul de nouvelles interprétations..."):
+                        try:
+                            st.session_state.val = validate_ai(st.session_state.betise, st.session_state.api_key)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur : {e}")
 
             else:
                 # Non valide
-                msg = f"<div style='font-weight:600;color:#991b1b;margin-bottom:8px;'>⚠️ Alerte de validation</div>"
-                msg += f"<div style='margin-bottom:10px;font-size:0.95rem;'>Le contenu renseigné ne répond pas aux critères de notre studio éducatif.</div>"
-                msg += f"<div style='background:#fee2e2;border-left:3px solid #ef4444;padding:8px 12px;border-radius:0 4px 4px 0;font-size:0.9rem;color:#991b1b;margin-bottom:10px;'>{v.get('raison','')}</div>"
-                st.markdown(ai_bubble(msg), unsafe_allow_html=True)
-
-                st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
+                msg  = "<div style='font-weight:600;color:#991b1b;margin-bottom:8px;'>⚠️ Message non reconnu</div>"
+                msg += "<div style='margin-bottom:10px;font-size:0.95rem;'>Le contenu renseigné ne répond pas aux critères de notre studio éducatif.</div>"
+                msg += f"<div style='background:#fee2e2;border-left:3px solid #ef4444;padding:8px 12px;border-radius:0 4px 4px 0;font-size:0.9rem;color:#991b1b;margin-bottom:8px;'>{v.get('raison','')}</div>"
                 if sugg:
-                    st.markdown("<div style='font-weight:600;font-size:0.9rem;color:#475569;margin-bottom:8px;'>💡 Suggestions de reformulation adaptées :</div>", unsafe_allow_html=True)
-                    for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"→ Utiliser : {s}",key=f"sg_{sid}",use_container_width=True):
-                            st.session_state.betise=s; st.session_state.val=None; st.rerun()
-
-                st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                if st.button("✏️ Modifier mon message", type="primary", use_container_width=True):
-                    st.session_state.val = None
-                    st.session_state.betise = ""
-                    st.rerun()
+                    msg += "<div style='font-size:0.86rem;font-weight:600;color:#475569;margin-top:8px;margin-bottom:4px;'>💡 Suggestions :</div>"
+                    for s in sugg[:3]:
+                        msg += f"<div style='font-size:0.85rem;color:#6366f1;padding:2px 0;'>→ {s}</div>"
+                msg += "<div style='font-size:0.8rem;color:#94a3b8;margin-top:10px;font-style:italic;'>Enrichissez votre message à l'aide du champ ci-dessous et renvoyez-le.</div>"
+                st.markdown(ai_bubble(msg), unsafe_allow_html=True)
 
         # ══════════════════════════════════════
         # 4) ZONE DE SAISIE — TOUJOURS VISIBLE
         # ══════════════════════════════════════
-        st.markdown(
-            "<div style='margin-top:20px;border-top:2px solid #e8eaf0;padding-top:16px;'>"
-            "<div style='font-size:0.78rem;font-weight:700;color:#6366f1;text-transform:uppercase;"
-            "letter-spacing:0.06em;margin-bottom:8px;'>✏️ Votre message — enrichissez à tout moment</div>"
-            "</div>",
-            unsafe_allow_html=True
-        )
+        _editing = st.session_state.get("editing_msg", False)
+
+        if _editing:
+            st.markdown(
+                "<div style='margin-top:20px;background:linear-gradient(135deg,#ede9fe,#f5f3ff);"
+                "border:2px solid #7c3aed;border-radius:12px;padding:12px 16px;"
+                "display:flex;align-items:center;gap:10px;'>"
+                "<span style='font-size:1.3rem;'>✏️</span>"
+                "<div><div style='font-size:0.82rem;font-weight:800;color:#5b21b6;"
+                "text-transform:uppercase;letter-spacing:0.05em;'>Mode modification</div>"
+                "<div style='font-size:0.8rem;color:#6d28d9;'>Modifiez votre message ci-dessous "
+                "puis cliquez sur <b>Envoyer la modification</b></div></div>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                "<div style='margin-top:20px;border-top:2px solid #e8eaf0;padding-top:14px;'>"
+                "<div style='font-size:0.78rem;font-weight:700;color:#6366f1;text-transform:uppercase;"
+                "letter-spacing:0.06em;margin-bottom:8px;'>✏️ Votre message — enrichissez à tout moment</div>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+
         betise = st.text_area(
             "Message", value=st.session_state.betise,
             placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques. Il le fait souvent le soir...",
@@ -1151,14 +1161,20 @@ def main():
         if betise != st.session_state.betise:
             st.session_state.betise = betise
 
-        c_clear, c_check = st.columns([1,3])
+        c_clear, c_check = st.columns([1, 3])
         with c_clear:
             if st.button("🗑️ Vider", use_container_width=True, key="btn_vider"):
                 st.session_state.betise = ""
                 st.session_state.val = None
+                st.session_state.editing_msg = False
                 st.rerun()
         with c_check:
-            lbl = "📤 Envoyer" if st.session_state.val is None else "🔄 Mettre à jour l'analyse"
+            if _editing:
+                lbl = "📤 Envoyer la modification"
+            elif st.session_state.val is None:
+                lbl = "📤 Envoyer"
+            else:
+                lbl = "🔄 Mettre à jour l'analyse"
             if st.button(lbl, type="primary", use_container_width=True, key="btn_envoyer"):
                 if not st.session_state.api_key.strip():
                     st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
@@ -1171,6 +1187,7 @@ def main():
                         try:
                             result = validate_ai(st.session_state.betise, st.session_state.api_key)
                             st.session_state.val = result
+                            st.session_state.editing_msg = False
                             if result.get("theme") in THEMES:
                                 st.session_state.theme = result["theme"]
                             st.rerun()
@@ -1178,6 +1195,7 @@ def main():
                             st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
                         except Exception as e:
                             st.error(f"Erreur API Groq : {e}")
+
 
         # ── EXEMPLES EN DESSOUS (TOUJOURS AFFICHÉS POUR ENRICHIR) ──
         st.markdown("<span class='sec-label'>💡 Quelques exemples pour t'inspirer :</span>",

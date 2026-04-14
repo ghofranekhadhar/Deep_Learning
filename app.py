@@ -761,14 +761,77 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
 .step-lbl.done{color:#16a34a!important;}
 .step-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
 
-/* Validation inline & Chat PRO */
-.chat-row { display:flex; margin-top: 1.5rem; width: 100%; }
-.chat-row.user { justify-content: flex-end; }
-.chat-row.ai { justify-content: flex-start; }
-.chat-bubble { max-width: 88%; padding: 16px 20px; border-radius: 20px; font-size: 0.96rem; line-height: 1.6; color: #334155; }
-.chat-bubble.user { background: #334155; color: #ffffff; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(51,65,85,0.2); }
-.chat-bubble.ai { background: #ffffff; color: #1e293b; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-.chat-avatar { width: 44px; height: 44px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 1.6rem; background: #f8fafc; margin: 0 14px 0 0; flex-shrink: 0; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+/* ── Chat Interface Professionnelle ── */
+.chat-container { display:flex; flex-direction:column; gap:0; padding: 4px 0; }
+.chat-row { display:flex; align-items:flex-end; margin-top: 1.25rem; width: 100%; gap: 10px; }
+.chat-row.user { justify-content: flex-end; flex-direction: row-reverse; }
+.chat-row.ai  { justify-content: flex-start; }
+
+/* Bulles */
+.chat-bubble { max-width: 82%; padding: 14px 18px; border-radius: 18px; font-size: 0.93rem; line-height: 1.65; word-break: break-word; position: relative; }
+.chat-bubble.user {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 18px rgba(79,70,229,0.28);
+}
+.chat-bubble.ai {
+    background: #ffffff;
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
+    border: 1px solid #e8eaf0;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+}
+
+/* Avatar */
+.chat-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 1.3rem; flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+}
+.chat-avatar.ai-av {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border: 2px solid #c4b5fd;
+}
+.chat-avatar.user-av {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    border: 2px solid #bae6fd;
+}
+
+/* Méta-info (nom + heure) */
+.chat-meta {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 5px; opacity: 0.75;
+}
+.chat-meta.ai  { color: #6366f1; text-align: left; }
+.chat-meta.user { color: #7dd3fc; text-align: right; }
+
+/* Wrapper bulle + meta */
+.chat-content { display:flex; flex-direction:column; max-width: 82%; }
+.chat-row.user .chat-content { align-items: flex-end; }
+.chat-row.ai  .chat-content { align-items: flex-start; }
+
+/* Titre section chat */
+.chat-section-header {
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+    border: 1px solid #c4b5fd; border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 1.25rem;
+}
+.chat-section-header .csh-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 1.4rem; flex-shrink:0;
+    box-shadow: 0 3px 10px rgba(99,102,241,0.3);
+}
+.chat-section-header .csh-title {
+    font-size: 1rem; font-weight: 800; color: #3730a3 !important; margin: 0 !important;
+}
+.chat-section-header .csh-sub {
+    font-size: 0.78rem; color: #6d28d9 !important; margin-top: 2px;
+}
 
 /* Char card */
 .char-pill{display:inline-flex;align-items:center;gap:6px;
@@ -913,20 +976,57 @@ def main():
     #  ÉTAPE 1 — LA BÊTISE + VALIDATION INLINE
     # ══════════════════════════════════════
     if st.session_state.step==1:
-        def ai_bubble(html_content):
-            hdr = '<div style="font-size:0.75rem;font-weight:800;color:#6366f1;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🤖 Assistant Scénariste</div>'
-            return f'<div class="chat-row ai"><div class="chat-bubble ai">{hdr}{html_content}</div></div>'
-        def user_bubble(html_content):
-            hdr = '<div style="font-size:0.75rem;font-weight:800;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;text-align:right;">Vous</div>'
-            return f'<div class="chat-row user"><div class="chat-bubble user">{hdr}{html_content}</div></div>'
+        import datetime as _dt
+        _now = _dt.datetime.now().strftime("%H:%M")
 
-        st.markdown('<div class="card">'
-            '<span class="sec-title">💬 Étape 1 : Discussion avec l\'IA</span></div>',
-            unsafe_allow_html=True)
+        def ai_bubble(html_content):
+            return (
+                f'<div class="chat-row ai">'
+                f'  <div class="chat-avatar ai-av">🤖</div>'
+                f'  <div class="chat-content">'
+                f'    <div class="chat-meta ai">Assistant Pédagogique · {_now}</div>'
+                f'    <div class="chat-bubble ai">{html_content}</div>'
+                f'  </div>'
+                f'</div>'
+            )
+
+        def user_bubble(html_content):
+            return (
+                f'<div class="chat-row user">'
+                f'  <div class="chat-avatar user-av">👤</div>'
+                f'  <div class="chat-content">'
+                f'    <div class="chat-meta user">Vous · {_now}</div>'
+                f'    <div class="chat-bubble user">{html_content}</div>'
+                f'  </div>'
+                f'</div>'
+            )
+
+        st.markdown(
+            '<div class="chat-section-header">'
+            '  <div class="csh-icon">🎓</div>'
+            '  <div>'
+            '    <div class="csh-title">Consultation avec l\'Assistant Pédagogique</div>'
+            '    <div class="csh-sub">Décrivez la situation de votre enfant — l\'IA génère un scénario éducatif personnalisé</div>'
+            '  </div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
         if not st.session_state.val:
-            msg_intro = "👋 <b>Bonjour parent !</b> Je suis l'Assistant Scénariste.<br>"
-            msg_intro += "Racontez-moi la bêtise de votre enfant (son prénom, son âge et ce qu'il a fait de dangereux ou d'interdit). Vous pouvez aussi utiliser l'un des exemples ci-dessous.<br>"
+            msg_intro = (
+                "<div style='margin-bottom:10px;font-size:0.95rem;font-weight:600;color:#1e293b;'>"
+                "Bonjour ! Je suis votre <b>Assistant Pédagogique</b> spécialisé en sécurité enfantine."
+                "</div>"
+                "<div style='font-size:0.88rem;color:#475569;line-height:1.7;'>"
+                "Pour générer un <b>scénario éducatif animé</b> adapté à votre enfant, "
+                "veuillez me décrire la situation en précisant :<br>"
+                "<ul style='margin:8px 0 8px 18px;padding:0;'>"
+                "<li>Le <b>prénom</b> et l'<b>âge</b> de l'enfant</li>"
+                "<li>Le <b>comportement dangereux</b> ou interdit observé</li>"
+                "</ul>"
+                "Vous pouvez également sélectionner un <b>exemple rapide</b> ci-dessous pour démarrer immédiatement."
+                "</div>"
+            )
             st.markdown(ai_bubble(msg_intro), unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
@@ -967,7 +1067,9 @@ def main():
         else:
             # ── RÉSULTAT VALIDATION CHAT ──
             # Le parent a envoyé son texte, on l'affiche sous forme de message
-            st.markdown(user_bubble(st.session_state.betise), unsafe_allow_html=True)
+            import html
+            safe_betise = html.escape(st.session_state.betise).replace("\n", "<br>")
+            st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
             
             v=st.session_state.val
             t=THEMES.get(st.session_state.theme,THEMES["general"])

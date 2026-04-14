@@ -1134,41 +1134,50 @@ def main():
                     st.rerun()
 
         # ══════════════════════════════════════
-        # 4) ZONE DE SAISIE — affichée uniquement avant envoi
+        # 4) ZONE DE SAISIE — TOUJOURS VISIBLE
         # ══════════════════════════════════════
-        if st.session_state.val is None:
-            st.markdown("<br>", unsafe_allow_html=True)
-            betise = st.text_area("Bêtise", value=st.session_state.betise,
-                placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques...",
-                height=100, label_visibility="collapsed")
-            if betise != st.session_state.betise:
-                st.session_state.betise = betise
+        st.markdown(
+            "<div style='margin-top:20px;border-top:2px solid #e8eaf0;padding-top:16px;'>"
+            "<div style='font-size:0.78rem;font-weight:700;color:#6366f1;text-transform:uppercase;"
+            "letter-spacing:0.06em;margin-bottom:8px;'>✏️ Votre message — enrichissez à tout moment</div>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        betise = st.text_area(
+            "Message", value=st.session_state.betise,
+            placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques. Il le fait souvent le soir...",
+            height=110, label_visibility="collapsed"
+        )
+        if betise != st.session_state.betise:
+            st.session_state.betise = betise
 
-            c_clear, c_check = st.columns([1,3])
-            with c_clear:
-                if st.button("🗑️ Vider", use_container_width=True):
-                    st.session_state.betise = ""
-                    st.rerun()
-            with c_check:
-                if st.button("📤 Envoyer le message", type="primary", use_container_width=True):
-                    if not st.session_state.api_key.strip():
-                        st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
-                    elif not st.session_state.betise.strip():
-                        st.error("⚠️ Décris la bêtise de ton enfant.")
-                    elif not _GROQ_OK:
-                        st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
-                    else:
-                        with st.spinner("🤖 L'IA lit votre message…"):
-                            try:
-                                result = validate_ai(st.session_state.betise, st.session_state.api_key)
-                                st.session_state.val = result
-                                if result.get("theme") in THEMES:
-                                    st.session_state.theme = result["theme"]
-                                st.rerun()
-                            except json.JSONDecodeError:
-                                st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
-                            except Exception as e:
-                                st.error(f"Erreur API Groq : {e}")
+        c_clear, c_check = st.columns([1,3])
+        with c_clear:
+            if st.button("🗑️ Vider", use_container_width=True, key="btn_vider"):
+                st.session_state.betise = ""
+                st.session_state.val = None
+                st.rerun()
+        with c_check:
+            lbl = "📤 Envoyer" if st.session_state.val is None else "🔄 Mettre à jour l'analyse"
+            if st.button(lbl, type="primary", use_container_width=True, key="btn_envoyer"):
+                if not st.session_state.api_key.strip():
+                    st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
+                elif not st.session_state.betise.strip():
+                    st.error("⚠️ Décris la bêtise de ton enfant.")
+                elif not _GROQ_OK:
+                    st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
+                else:
+                    with st.spinner("🤖 L'IA analyse votre message…"):
+                        try:
+                            result = validate_ai(st.session_state.betise, st.session_state.api_key)
+                            st.session_state.val = result
+                            if result.get("theme") in THEMES:
+                                st.session_state.theme = result["theme"]
+                            st.rerun()
+                        except json.JSONDecodeError:
+                            st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
+                        except Exception as e:
+                            st.error(f"Erreur API Groq : {e}")
 
         # ── EXEMPLES EN DESSOUS (TOUJOURS AFFICHÉS POUR ENRICHIR) ──
         st.markdown("<span class='sec-label'>💡 Quelques exemples pour t'inspirer :</span>",

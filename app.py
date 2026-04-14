@@ -807,109 +807,76 @@ p,div,span,label{font-family:'Inter',sans-serif!important;}
 .step-lbl.done{color:#16a34a!important;}
 .step-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
 
-/* ════════════════════════════════════════
-   DEEPSEEK CHAT — Styles definitifs
-   ════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   CHAT DEEPSEEK — Design épuré
+   ══════════════════════════════════════ */
 
-/* Wrappers Streamlit — pleine largeur */
 [data-testid="stMarkdownContainer"],
-[data-testid="stMarkdownContainer"] > div {
-    width: 100% !important;
-}
+[data-testid="stMarkdownContainer"] > div { width: 100% !important; }
 
-/* IA — ligne GAUCHE */
+/* — Bulle IA (gauche) — */
 .ds-msg-ai {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin: 10px 0;
+    display: flex; align-items: flex-start; gap: 10px; margin: 8px 0;
 }
 .ds-avatar-ai {
-    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
     background: linear-gradient(135deg,#4f46e5,#7c3aed);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.95rem;
-    box-shadow: 0 2px 6px rgba(99,102,241,0.3);
-    margin-top: 3px;
+    font-size: 0.82rem; margin-top: 2px; color: white;
 }
-/* Bulle IA */
 .ds-bubble-ai {
     background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px 18px 18px 18px;
-    padding: 11px 16px;
-    font-size: 0.92rem;
-    line-height: 1.7;
-    max-width: 82%;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    word-break: break-word;
+    border: 1px solid #e8eaf0;
+    border-radius: 4px 16px 16px 16px;
+    padding: 10px 15px;
+    font-size: 0.91rem; line-height: 1.65;
+    max-width: 85%; word-break: break-word;
 }
-.ds-bubble-ai, .ds-bubble-ai * {
-    color: #1e293b !important;
-}
+.ds-bubble-ai, .ds-bubble-ai * { color: #1e293b !important; }
 
-/* Parent — bloc DROIT (via columns ST) */
+/* — Bulle Parent (droite) — */
 .ds-user-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    width: 100%;
+    display: flex; flex-direction: column; align-items: flex-end; width: 100%;
 }
-/* Bulle Parent — fond violet, texte blanc */
 .ds-bubble-user {
-    background: linear-gradient(135deg, #4f46e5, #6d28d9) !important;
-    border-radius: 18px 4px 18px 18px !important;
-    padding: 11px 16px !important;
-    font-size: 0.92rem !important;
-    line-height: 1.7 !important;
+    background: #4f46e5 !important;
+    border-radius: 16px 4px 16px 16px !important;
+    padding: 10px 15px !important;
+    font-size: 0.91rem !important; line-height: 1.65 !important;
     max-width: 100% !important;
-    box-shadow: 0 3px 12px rgba(79,70,229,0.28) !important;
-    word-break: break-word !important;
-    display: inline-block !important;
+    word-break: break-word !important; display: inline-block !important;
 }
 .ds-bubble-user, .ds-bubble-user * {
-    color: #ffffff !important;
-    font-family: 'Inter', sans-serif !important;
+    color: #ffffff !important; font-family: 'Inter', sans-serif !important;
 }
 
 /* Heure */
 .ds-time {
-    font-size: 0.62rem;
-    opacity: 0.5;
-    margin-top: 3px;
-    display: block;
-    color: #94a3b8 !important;
+    font-size: 0.62rem; opacity: 0.45; margin-top: 3px;
+    display: block; color: #94a3b8 !important;
 }
 .ds-user-wrap .ds-time { text-align: right; }
 
-/* Bouton ↑ intégré dans zone de saisie */
-[data-testid="stButton"][key="btn_send_icon"] button {
-    height: 90px !important;
-    border-radius: 12px !important;
-    font-size: 1.3rem !important;
-    padding: 0 !important;
-}
-
-/* En-tête section */
+/* En-tête chat */
 .chat-section-header {
     display: flex; align-items: center; gap: 12px;
-    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-    border: 1px solid #c4b5fd; border-radius: 14px;
-    padding: 14px 18px; margin-bottom: 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 12px; margin-bottom: 10px;
 }
 .chat-section-header .csh-icon {
-    width: 44px; height: 44px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     background: linear-gradient(135deg, #4f46e5, #7c3aed);
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; flex-shrink: 0;
-    box-shadow: 0 3px 10px rgba(99,102,241,0.3);
+    font-size: 1.1rem; flex-shrink: 0;
 }
 .chat-section-header .csh-title {
-    font-size: 1rem; font-weight: 800; color: #3730a3 !important; margin: 0 !important;
+    font-size: 0.95rem; font-weight: 700; color: #1e293b !important; margin: 0 !important;
 }
 .chat-section-header .csh-sub {
-    font-size: 0.78rem; color: #6d28d9 !important; margin-top: 2px;
+    font-size: 0.75rem; color: #94a3b8 !important; margin-top: 1px;
 }
+
+
 
 /* Char card */
 .char-pill{display:inline-flex;align-items:center;gap:6px;
@@ -1065,13 +1032,13 @@ def main():
             return (
                 '<div class="ds-msg-ai">'
                 '<div class="ds-avatar-ai">🤖</div>'
-                '<div class="ds-content">'
+                '<div>'
                 f'<div class="ds-bubble-ai">{content}</div>'
                 + (f'<span class="ds-time">{ts}</span>' if ts else '') +
                 '</div></div>'
             )
 
-        # ─ EN-TÊTE ─
+        # ─ EN-TÊTE (fixe, ne défile pas) ─
         st.markdown(
             '<div class="chat-section-header">'
             '<div class="csh-icon">🎓</div>'
@@ -1082,7 +1049,7 @@ def main():
             unsafe_allow_html=True
         )
 
-        # ─ Message d’accueil IA ─
+        # ─ MESSAGE DE BIENVENUE (fixe, ne défile pas) ─
         greeting = (
             "<b>Bonjour ! 👋 Je suis votre Assistant Pédagogique.</b><br>"
             "<span style='font-size:0.88rem;'>"
@@ -1092,88 +1059,90 @@ def main():
         )
         st.markdown(ds_ai_bubble(greeting), unsafe_allow_html=True)
 
-        # ─ Historique : rendu message par message avec édition inline ─
+        # ─ ZONE DE DISCUSSION SCROLLABLE ─
         _ei = st.session_state.get("editing_index", None)
-        for i, msg in enumerate(st.session_state.chat_history):
-            txt = _html.escape(msg["content"]).replace("\n", "<br>")
-            ts  = msg.get("ts", "")
 
-            if msg["role"] == "ai":
-                # — Bulle IA à GAUCHE —
-                st.markdown(ds_ai_bubble(txt, ts), unsafe_allow_html=True)
+        # Utilise st.container avec hauteur fixe pour créer la zone scrollable
+        chat_area = st.container(height=420, border=False)
 
-            else:  # user
-                if _ei == i:
-                    # — MODE ÉDITION INLINE (colonne droite) —
-                    _sp, _edit_zone = st.columns([1, 5])
-                    with _edit_zone:
-                        edited = st.text_area(
-                            "Modifier",
-                            value=st.session_state.editing_content,
-                            height=90, label_visibility="collapsed",
-                            key=f"inline_edit_{i}"
-                        )
-                        st.session_state.editing_content = edited
-                        _ca, _cc = st.columns([1, 1])
-                        with _cc:
-                            if st.button("✓ Confirmer", key=f"confirm_{i}",
-                                         type="primary", use_container_width=True):
-                                new_txt = st.session_state.editing_content.strip()
-                                if new_txt:
-                                    st.session_state.chat_history[i]["content"] = new_txt
-                                    st.session_state.chat_history = \
-                                        st.session_state.chat_history[:i+1]
+        with chat_area:
+            for i, msg in enumerate(st.session_state.chat_history):
+                txt = _html.escape(msg["content"]).replace("\n", "<br>")
+                ts  = msg.get("ts", "")
+
+                if msg["role"] == "ai":
+                    st.markdown(ds_ai_bubble(txt, ts), unsafe_allow_html=True)
+
+                else:  # message parent
+                    if _ei == i:
+                        # — MODE ÉDITION INLINE —
+                        _, _ez = st.columns([1, 5])
+                        with _ez:
+                            edited = st.text_area(
+                                "Modifier", value=st.session_state.editing_content,
+                                height=80, label_visibility="collapsed",
+                                key=f"inline_edit_{i}"
+                            )
+                            st.session_state.editing_content = edited
+                            _ca, _cc = st.columns([1, 1])
+                            with _cc:
+                                if st.button("✓ Confirmer", key=f"confirm_{i}",
+                                             type="primary", use_container_width=True):
+                                    new_txt = st.session_state.editing_content.strip()
+                                    if new_txt:
+                                        st.session_state.chat_history[i]["content"] = new_txt
+                                        st.session_state.chat_history = \
+                                            st.session_state.chat_history[:i+1]
+                                        st.session_state.editing_index = None
+                                        st.session_state.editing_content = ""
+                                        st.session_state.val = None
+                                        with st.spinner("🤖 Analyse…"):
+                                            try:
+                                                res = chat_ai(new_txt, st.session_state.api_key)
+                                                reply = res.get("response", "Bien reçu !")
+                                                st.session_state.chat_history.append(
+                                                    {"role":"ai","content":reply,"ts":_ts()})
+                                                st.session_state.val = res if res.get("type")=="scenario" else None
+                                                if res.get("theme") in THEMES:
+                                                    st.session_state.theme = res["theme"]
+                                            except Exception as e:
+                                                st.error(f"Erreur : {e}")
+                                        st.rerun()
+                            with _ca:
+                                if st.button("✕ Annuler", key=f"cancel_{i}",
+                                             use_container_width=True):
                                     st.session_state.editing_index = None
                                     st.session_state.editing_content = ""
-                                    st.session_state.val = None
-                                    with st.spinner("🤖 Analyse du message modifié…"):
-                                        try:
-                                            res = chat_ai(new_txt, st.session_state.api_key)
-                                            reply = res.get("response", "Bien reçu !")
-                                            st.session_state.chat_history.append(
-                                                {"role":"ai","content":reply,"ts":_ts()})
-                                            st.session_state.val = res if res.get("type")=="scenario" else None
-                                            if res.get("theme") in THEMES:
-                                                st.session_state.theme = res["theme"]
-                                        except Exception as e:
-                                            st.error(f"Erreur : {e}")
                                     st.rerun()
-                        with _ca:
-                            if st.button("✕ Annuler", key=f"cancel_{i}",
-                                         use_container_width=True):
-                                st.session_state.editing_index = None
-                                st.session_state.editing_content = ""
+                    else:
+                        # — Affichage normal : bulle à droite + 'Modifier' discret en dessous —
+                        _, _bc = st.columns([2, 5])
+                        with _bc:
+                            bubble_html = (
+                                f'<div class="ds-user-wrap">'
+                                f'<div class="ds-bubble-user">{txt}</div>'
+                                + (f'<span class="ds-time">{ts}</span>' if ts else '') +
+                                '</div>'
+                            )
+                            st.markdown(bubble_html, unsafe_allow_html=True)
+                        # Lien 'Modifier' en dessous, aligné à droite
+                        _, _mc = st.columns([2, 5])
+                        with _mc:
+                            if st.button(f"✏️ Modifier", key=f"mod_{i}",
+                                         use_container_width=False):
+                                st.session_state.editing_index = i
+                                st.session_state.editing_content = msg["content"]
                                 st.rerun()
-                else:
-                    # — Bulle parent à DROITE via colonnes ST —
-                    # col vide à gauche (pousse vers droite) + col bouche à droite
-                    _lft, _mid, _rgt = st.columns([1, 5, 0.6])
-                    with _mid:
-                        # HTML minimal : juste la bulle avec les bonnes classes
-                        bubble_html = (
-                            f'<div class="ds-user-wrap">'
-                            f'<div class="ds-bubble-user">{txt}</div>'
-                            + (f'<span class="ds-time">Vous · {ts}</span>' if ts else '') +
-                            '</div>'
-                        )
-                        st.markdown(bubble_html, unsafe_allow_html=True)
-                    with _rgt:
-                        # Bouton ✏️ compact aligné avec la bulle
-                        st.markdown("<div style='padding-top:4px;'></div>",
-                                    unsafe_allow_html=True)
-                        if st.button("✏️", key=f"edit_msg_{i}",
-                                     help="Modifier ce message"):
-                            st.session_state.editing_index = i
-                            st.session_state.editing_content = msg["content"]
-                            st.rerun()
 
+        # ─ Séparateur avant la zone de saisie ─
+        st.markdown(
+            "<div style='border-top:1px solid #f1f5f9;margin-top:8px;'></div>",
+            unsafe_allow_html=True
+        )
 
-
-
-
-        # ══════════════════════════════════════
-        # BOUTONS D'ACTION — si dernier msg IA est un scénario
-        # ══════════════════════════════════════
+        # ──────────────────────────────────────
+        # BOUTONS D'ACTION scénario (si actif)
+        # ──────────────────────────────────────
         last_val = st.session_state.val
         if last_val and last_val.get("type") == "scenario" and last_val.get("valide"):
             v = last_val

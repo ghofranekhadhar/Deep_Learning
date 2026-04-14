@@ -800,27 +800,9 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
 .step-lbl.done{color:#16a34a!important;}
 .step-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
 
-/* ── Chat Interface Professionnelle ── */
-.chat-container { display:flex; flex-direction:column; gap:0; padding: 4px 0; }
-.chat-row { display:flex; align-items:flex-end; margin-top: 1.25rem; width: 100%; gap: 10px; }
-.chat-row.user { justify-content: flex-end; flex-direction: row-reverse; }
-.chat-row.ai  { justify-content: flex-start; }
-
-/* ── Chat Interface WhatsApp style ── */
-
-/* Wrapper général de toute une ligne de chat */
-.chat-row {
-    display: flex !important;
-    align-items: flex-end !important;
-    width: 100% !important;
-    margin-top: 10px !important;
-    gap: 8px !important;
-    box-sizing: border-box !important;
-}
-/* Bot → GAUCHE */
-.chat-row.ai  { flex-direction: row !important; justify-content: flex-start !important; }
-/* Parent → DROITE */
-.chat-row.user { flex-direction: row-reverse !important; justify-content: flex-start !important; }
+/* ════════════════════════════════════════
+   DEEPSEEK-STYLE CHAT CSS
+   ════════════════════════════════════════ */
 
 /* Forcer pleine largeur sur les wrappers Streamlit */
 [data-testid="stMarkdownContainer"] {
@@ -997,7 +979,7 @@ def main():
               "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
               "theme":"general","show_key":False,"analyzing":False,
               "confirmed_yes":False,"confirmed_no":False,
-              "editing_msg":False,"chat_history":[]}
+              "chat_history":[],"editing_index":None,"editing_content":""}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
@@ -1080,71 +1062,114 @@ def main():
                 f'</div></div>'
             )
 
-        # ── EN-TÊTE ──
+        # EN-TÊTE
         st.markdown(
             '<div class="chat-section-header">'
             '<div class="csh-icon">🎓</div>'
             '<div>'
-            '<div class="csh-title">Assistant Pédagogique — Chat</div>'
-            '<div class="csh-sub">Discutez librement · Je détecte automatiquement les situations de danger enfant</div>'
+            '<div class="csh-title">Assistant Pédagogique</div>'
+            '<div class="csh-sub">Discutez librement · Détection automatique des situations de danger</div>'
             '</div></div>',
             unsafe_allow_html=True
         )
 
-        # ══════════════════════════════════════
-        # AFFICHAGE DU CHAT — message par message
-        # (bouton ✏️ intégré après chaque bulle parent)
-        # ══════════════════════════════════════
-        greeting_html = (
-            "<div style='font-size:0.95rem;font-weight:600;color:#1e293b;margin-bottom:8px;'>"
-            "Bonjour ! Je suis votre <b>Assistant Pédagogique</b> 👋"
-            "</div>"
-            "<div style='font-size:0.88rem;color:#475569;line-height:1.7;'>"
-            "Je suis là pour vous aider sur tout ce qui concerne votre enfant.<br>"
-            "<b>Parlez-moi librement</b> — si vous décrivez une situation de danger,"
-            " je génère automatiquement un scénario éducatif animé personnalisé ✨"
-            "</div>"
-        )
-        # Message d'accueil (toujours affiché)
-        st.markdown(make_ai_bubble(greeting_html, ""), unsafe_allow_html=True)
+        # ─ Fonctions de bulles DeepSeek ─
+        def ds_ai_bubble(content, ts=""):
+            return (
+                '<div class="ds-msg-ai">'
+                '<div class="ds-avatar-ai">🤖</div>'
+                '<div class="ds-content">'
+                f'<div class="ds-bubble-ai">{content}</div>'
+                + (f'<span class="ds-time">{ts}</span>' if ts else '') +
+                '</div></div>'
+            )
 
-        # Historique message par message
+        def ds_user_bubble(content, ts=""):
+            return (
+                '<div class="ds-msg-user">'
+                '<div class="ds-content">'
+                f'<div class="ds-bubble-user">{content}</div>'
+                + (f'<span class="ds-time">Vous · {ts}</span>' if ts else '') +
+                '</div></div>'
+            )
+
+        # ─ Message d’accueil IA ─
+        greeting = (
+            "<b>Bonjour ! 👋 Je suis votre Assistant Pédagogique.</b><br>"
+            "<span style='font-size:0.88rem;opacity:0.85;'>"
+            "Parlez-moi librement — si vous décrivez un comportement dangereux de votre enfant,"
+            " je génère automatiquement un scénario éducatif animé personnalisé. ✨"
+            "</span>"
+        )
+        st.markdown(ds_ai_bubble(greeting), unsafe_allow_html=True)
+
+        # ─ Historique : rendu message par message avec édition inline ─
+        _ei = st.session_state.get("editing_index", None)
         for i, msg in enumerate(st.session_state.chat_history):
             txt = _html.escape(msg["content"]).replace("\n", "<br>")
             ts  = msg.get("ts", "")
 
-            if msg["role"] == "user":
-                # Bulle parent à DROITE + bouton ✏️ compact juste à côté
-                _bcol, _bubble_col = st.columns([0.5, 9.5])
-                with _bcol:
-                    # bouton ✏️ aligné côté gauche de la bulle parent
-                    # (affiché à gauche de la bulle, visuellement "à côté")
-                    st.markdown(
-                        "<div style='display:flex;justify-content:flex-end;"
-                        "align-items:flex-end;height:100%;padding-bottom:4px;'></div>",
-                        unsafe_allow_html=True
-                    )
-                with _bubble_col:
-                    # Ligne : ✏️ bouton + bulle côte à côte
-                    _eb, _mb = st.columns([1, 8])
-                    with _eb:
-                        st.markdown(
-                            "<div style='display:flex;align-items:flex-end;"
-                            "height:100%;padding-bottom:6px;'>",
-                            unsafe_allow_html=True
+            if msg["role"] == "ai":
+                st.markdown(ds_ai_bubble(txt, ts), unsafe_allow_html=True)
+
+            else:  # user
+                if _ei == i:
+                    # ─ MODE ÉDITION INLINE ─
+                    _sp, _edit_zone = st.columns([1, 5])
+                    with _edit_zone:
+                        edited = st.text_area(
+                            "Modifier",
+                            value=st.session_state.editing_content,
+                            height=90, label_visibility="collapsed",
+                            key=f"inline_edit_{i}"
                         )
-                        if st.button("✏️", key=f"edit_msg_{i}",
-                                     help="Modifier ce message"):
-                            st.session_state.betise = msg["content"]
-                            st.session_state.editing_msg = True
-                            st.rerun()
-                        st.markdown("</div>", unsafe_allow_html=True)
-                    with _mb:
-                        st.markdown(make_user_bubble(txt, ts),
-                                    unsafe_allow_html=True)
-            else:
-                # Bulle IA à GAUCHE — pleine largeur
-                st.markdown(make_ai_bubble(txt, ts), unsafe_allow_html=True)
+                        st.session_state.editing_content = edited
+                        _ca, _cc = st.columns([1, 1])
+                        with _cc:
+                            if st.button("✓ Confirmer", key=f"confirm_{i}",
+                                         type="primary", use_container_width=True):
+                                new_txt = st.session_state.editing_content.strip()
+                                if new_txt:
+                                    # Met à jour le message dans l'historique
+                                    st.session_state.chat_history[i]["content"] = new_txt
+                                    # Supprime les messages suivants
+                                    st.session_state.chat_history = \
+                                        st.session_state.chat_history[:i+1]
+                                    st.session_state.editing_index = None
+                                    st.session_state.editing_content = ""
+                                    st.session_state.val = None
+                                    # Re-soumet à l'IA
+                                    with st.spinner("🤖 Analyse du message modifié…"):
+                                        try:
+                                            res = chat_ai(new_txt, st.session_state.api_key)
+                                            reply = res.get("response", "Bien reçu !")
+                                            st.session_state.chat_history.append(
+                                                {"role":"ai","content":reply,"ts":_ts()})
+                                            st.session_state.val = res if res.get("type")=="scenario" else None
+                                            if res.get("theme") in THEMES:
+                                                st.session_state.theme = res["theme"]
+                                        except Exception as e:
+                                            st.error(f"Erreur : {e}")
+                                    st.rerun()
+                        with _ca:
+                            if st.button("✕ Annuler", key=f"cancel_{i}",
+                                         use_container_width=True):
+                                st.session_state.editing_index = None
+                                st.session_state.editing_content = ""
+                                st.rerun()
+                else:
+                    # ─ AFFICHAGE NORMAL bulle parent ─
+                    _sp, _bcol = st.columns([1, 6])
+                    with _bcol:
+                        _editbtn, _bubbcol = st.columns([0.4, 5.6])
+                        with _editbtn:
+                            if st.button("✏️", key=f"edit_msg_{i}",
+                                         help="Modifier ce message"):
+                                st.session_state.editing_index = i
+                                st.session_state.editing_content = msg["content"]
+                                st.rerun()
+                        with _bubbcol:
+                            st.markdown(ds_user_bubble(txt, ts), unsafe_allow_html=True)
 
 
 
@@ -1233,43 +1258,29 @@ def main():
                             st.error(f"Erreur : {e}")
 
         # ══════════════════════════════════════
-        # ZONE DE SAISIE — TOUJOURS VISIBLE
+        # ZONE DE SAISIE STYLE DEEPSEEK
         # ══════════════════════════════════════
-        _editing = st.session_state.get("editing_msg", False)
         st.markdown(
-            "<div style='margin-top:20px;border-top:2px solid #e8eaf0;padding-top:14px;'></div>",
+            "<div style='margin-top:18px;border-top:1px solid #f1f5f9;padding-top:16px;'></div>",
             unsafe_allow_html=True
         )
-        if _editing:
-            st.info("✏️ **Mode modification** — Modifiez le message ci-dessous et renvoyez.")
 
         user_input = st.text_area(
             "Votre message",
             value=st.session_state.betise,
-            placeholder="Ex : Bonjour ! / Mon fils Adam, 5 ans, touche les prises électriques... / C'est quoi un danger ?",
-            height=100, label_visibility="collapsed"
+            placeholder="Écrivez votre message… (Bonjour / Mon fils Adam 5 ans touche les prises / ...)",
+            height=90, label_visibility="collapsed", key="main_input"
         )
         if user_input != st.session_state.betise:
             st.session_state.betise = user_input
 
-        c_clear, c_send = st.columns([1, 3])
-        with c_clear:
-            if st.button("🗑️ Vider", use_container_width=True, key="btn_vider"):
-                st.session_state.betise = ""
-                st.session_state.val = None
-                st.session_state.editing_msg = False
-                st.rerun()
-        with c_send:
-            if _editing:
-                lbl_btn = "📤 Envoyer la modification"
-            elif not st.session_state.chat_history:
-                lbl_btn = "📤 Envoyer"
-            else:
-                lbl_btn = "📤 Envoyer"
-            if st.button(lbl_btn, type="primary",
+        # Bouton Envoyer uniquement (style DeepSeek)
+        _, _sbtn = st.columns([5, 1])
+        with _sbtn:
+            if st.button("↗ Envoyer", type="primary",
                          use_container_width=True, key="btn_envoyer"):
                 if not st.session_state.api_key.strip():
-                    st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
+                    st.error("⚠️ Clé API Groq manquante (barre latérale).")
                 elif not st.session_state.betise.strip():
                     st.error("⚠️ Écris ton message.")
                 elif not _GROQ_OK:
@@ -1277,40 +1288,43 @@ def main():
                 else:
                     _now = _ts()
                     msg_texte = st.session_state.betise.strip()
-                    # Ajoute le message parent à l'historique
                     st.session_state.chat_history.append(
                         {"role": "user", "content": msg_texte, "ts": _now})
                     with st.spinner("🤖 L'IA réfléchit…"):
                         try:
                             res = chat_ai(msg_texte, st.session_state.api_key)
-                            reply = res.get("response", "Je suis là, continuez !")
-                            # Ajoute la réponse IA à l'historique
+                            reply = res.get("response", "Je suis là !")
                             st.session_state.chat_history.append(
                                 {"role": "ai", "content": reply, "ts": _ts()})
-                            # Mise à jour état
                             st.session_state.val = res if res.get("type") == "scenario" else None
                             if res.get("theme") in THEMES:
                                 st.session_state.theme = res["theme"]
-                            st.session_state.editing_msg = False
                             st.session_state.betise = ""
                             st.rerun()
                         except Exception as e:
-                            # Retire le msg parent si erreur
                             st.session_state.chat_history.pop()
                             st.error(f"Erreur API Groq : {e}")
 
-        # ── EXEMPLES RAPIDES ──
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<span class='sec-label'>💡 Exemples pour démarrer :</span>",
-                    unsafe_allow_html=True)
-        cols = st.columns(3)
+        # ── SUGGESTIONS RAPIDES (chips) ──
+        st.markdown(
+            "<div style='margin-top:14px;'>"
+            "<span style='font-size:0.7rem;font-weight:700;color:#94a3b8;"
+            "text-transform:uppercase;letter-spacing:0.06em;'>💡 Suggestions rapides</span>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        ex_cols = st.columns(len(EXAMPLES))
         for idx, ex in enumerate(EXAMPLES):
-            with cols[idx % 3]:
-                if st.button(f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
-                             use_container_width=True, help=ex["text"]):
+            with ex_cols[idx]:
+                if st.button(
+                    f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
+                    use_container_width=True, help=ex["text"]
+                ):
                     st.session_state.betise = ex["text"]
                     st.session_state.theme = ex["theme"]
                     st.rerun()
+
+
 
     # ══════════════════════════════════════
     #  ÉTAPE 2 — SCÉNARIO

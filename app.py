@@ -767,6 +767,15 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
 .chat-row.user { justify-content: flex-end; flex-direction: row-reverse; }
 .chat-row.ai  { justify-content: flex-start; }
 
+/* Force les wrappers Streamlit à ne pas contraindre la largeur */
+[data-testid="stMarkdownContainer"]:has(.chat-row) {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+[data-testid="stMarkdownContainer"] > .chat-row {
+    width: 100% !important;
+}
+
 /* Bulles */
 .chat-bubble { max-width: 82%; padding: 14px 18px; border-radius: 18px; font-size: 0.93rem; line-height: 1.65; word-break: break-word; position: relative; }
 .chat-bubble.user {
@@ -1035,19 +1044,18 @@ def main():
         st.markdown(ai_bubble(msg_intro, "09:00"), unsafe_allow_html=True)
 
         # ══════════════════════════════════════
-        # 2) MESSAGE DU PARENT — avec bouton ✏️ intégré
+        # 2) MESSAGE DU PARENT — aligné à droite (style Messenger)
         # ══════════════════════════════════════
         if st.session_state.betise.strip() and st.session_state.val is not None:
             import html as _html
             safe_betise = _html.escape(st.session_state.betise).replace("\n", "<br>")
-            # Bulle parent à droite + bouton ✏️ sur la même ligne
-            _col_space, _col_edit, _col_bubble = st.columns([4, 0.7, 0.3])
-            with _col_space:
-                st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
-            with _col_edit:
-                st.write("")
-                if st.button("✏️", key="btn_edit_msg", help="Modifier ce message",
-                             use_container_width=True):
+            # Bulle pleine largeur → le CSS flex-end l'aligne automatiquement à droite
+            st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
+            # Bouton ✏️ en colonne droite juste sous la bulle
+            _gap, _edit_btn = st.columns([5, 1])
+            with _edit_btn:
+                if st.button("✏️ Modifier", key="btn_edit_msg",
+                             help="Modifier ce message", use_container_width=True):
                     st.session_state.editing_msg = True
                     st.rerun()
 

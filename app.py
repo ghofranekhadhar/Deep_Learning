@@ -979,28 +979,31 @@ def main():
         import datetime as _dt
         _now = _dt.datetime.now().strftime("%H:%M")
 
-        def ai_bubble(html_content):
+        def ai_bubble(html_content, ts=None):
+            t = ts or _now
             return (
                 f'<div class="chat-row ai">'
                 f'  <div class="chat-avatar ai-av">🤖</div>'
                 f'  <div class="chat-content">'
-                f'    <div class="chat-meta ai">Assistant Pédagogique · {_now}</div>'
+                f'    <div class="chat-meta ai">Assistant Pédagogique · {t}</div>'
                 f'    <div class="chat-bubble ai">{html_content}</div>'
                 f'  </div>'
                 f'</div>'
             )
 
-        def user_bubble(html_content):
+        def user_bubble(html_content, ts=None):
+            t = ts or _now
             return (
                 f'<div class="chat-row user">'
                 f'  <div class="chat-avatar user-av">👤</div>'
                 f'  <div class="chat-content">'
-                f'    <div class="chat-meta user">Vous · {_now}</div>'
+                f'    <div class="chat-meta user">Vous · {t}</div>'
                 f'    <div class="chat-bubble user">{html_content}</div>'
                 f'  </div>'
                 f'</div>'
             )
 
+        # ── EN-TÊTE SECTION ──
         st.markdown(
             '<div class="chat-section-header">'
             '  <div class="csh-icon">🎓</div>'
@@ -1012,86 +1015,54 @@ def main():
             unsafe_allow_html=True
         )
 
-        if not st.session_state.val:
-            msg_intro = (
-                "<div style='margin-bottom:10px;font-size:0.95rem;font-weight:600;color:#1e293b;'>"
-                "Bonjour ! Je suis votre <b>Assistant Pédagogique</b> spécialisé en sécurité enfantine."
-                "</div>"
-                "<div style='font-size:0.88rem;color:#475569;line-height:1.7;'>"
-                "Pour générer un <b>scénario éducatif animé</b> adapté à votre enfant, "
-                "veuillez me décrire la situation en précisant :<br>"
-                "<ul style='margin:8px 0 8px 18px;padding:0;'>"
-                "<li>Le <b>prénom</b> et l'<b>âge</b> de l'enfant</li>"
-                "<li>Le <b>comportement dangereux</b> ou interdit observé</li>"
-                "</ul>"
-                "Vous pouvez également sélectionner un <b>exemple rapide</b> ci-dessous pour démarrer immédiatement."
-                "</div>"
-            )
-            st.markdown(ai_bubble(msg_intro), unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            betise=st.text_area("Bêtise",value=st.session_state.betise,
-                placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques...",
-                height=110,label_visibility="collapsed")
-            
-            if betise != st.session_state.betise:
-                st.session_state.betise = betise
-                
-            c_clear, c_check = st.columns([1,3])
-            with c_clear:
-                if st.button("🗑️ Vider", use_container_width=True):
-                    st.session_state.betise = ""
-                    st.rerun()
-            with c_check:
-                if st.button("📤 Envoyer le message",type="primary",use_container_width=True):
-                    if not st.session_state.api_key.strip():
-                        st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
-                    elif not st.session_state.betise.strip():
-                        st.error("⚠️ Décris la bêtise de ton enfant.")
-                    elif not _GROQ_OK:
-                        st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
-                    else:
-                        with st.spinner("🤖 L'IA lit votre message…"):
-                            try:
-                                result=validate_ai(st.session_state.betise,st.session_state.api_key)
-                                st.session_state.val=result
-                                if result.get("theme") in THEMES:
-                                    st.session_state.theme=result["theme"]
-                                st.rerun()
-                            except json.JSONDecodeError:
-                                st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
-                            except Exception as e:
-                                st.error(f"Erreur API Groq : {e}")
+        # ══════════════════════════════════════
+        # 1) MESSAGE D'ACCUEIL — TOUJOURS AFFICHÉ EN PREMIER
+        # ══════════════════════════════════════
+        msg_intro = (
+            "<div style='margin-bottom:10px;font-size:0.95rem;font-weight:600;color:#1e293b;'>"
+            "Bonjour ! Je suis votre <b>Assistant Pédagogique</b> spécialisé en sécurité enfantine."
+            "</div>"
+            "<div style='font-size:0.88rem;color:#475569;line-height:1.7;'>"
+            "Pour générer un <b>scénario éducatif animé</b> adapté à votre enfant, "
+            "veuillez me décrire la situation en précisant :<br>"
+            "<ul style='margin:8px 0 8px 18px;padding:0;'>"
+            "<li>Le <b>prénom</b> et l'<b>âge</b> de l'enfant</li>"
+            "<li>Le <b>comportement dangereux</b> ou interdit observé</li>"
+            "</ul>"
+            "Vous pouvez également sélectionner un <b>exemple rapide</b> ci-dessous pour démarrer immédiatement."
+            "</div>"
+        )
+        st.markdown(ai_bubble(msg_intro, "09:00"), unsafe_allow_html=True)
 
-        else:
-            # ── RÉSULTAT VALIDATION CHAT ──
-            # Le parent a envoyé son texte, on l'affiche sous forme de message
-            import html
-            safe_betise = html.escape(st.session_state.betise).replace("\n", "<br>")
+        # ══════════════════════════════════════
+        # 2) MESSAGE DU PARENT — affiché si déjà envoyé
+        # ══════════════════════════════════════
+        if st.session_state.betise.strip() and st.session_state.val is not None:
+            import html as _html
+            safe_betise = _html.escape(st.session_state.betise).replace("\n", "<br>")
             st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
-            
-            v=st.session_state.val
-            t=THEMES.get(st.session_state.theme,THEMES["general"])
-            sugg=v.get("suggestions",[])
 
-            st.write("") # espacement
+        # ══════════════════════════════════════
+        # 3) RÉPONSE DE L'IA — affichée sous le message parent
+        # ══════════════════════════════════════
+        if st.session_state.val is not None:
+            v  = st.session_state.val
+            t  = THEMES.get(st.session_state.theme, THEMES["general"])
+            sugg = v.get("suggestions", [])
 
             if v.get("valide"):
-                msg = f"<div style='margin-bottom:8px;font-size:0.95rem;'>J'ai analysé votre description. Voici les éléments clés retenus :</div>"
-                msg += f"<div style='background:#f8fafc;border-left:3px solid #6366f1;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.9rem;'>"
+                msg  = "<div style='margin-bottom:8px;font-size:0.95rem;'>J'ai analysé votre description. Voici les éléments clés retenus :</div>"
+                msg += "<div style='background:#f8fafc;border-left:3px solid #6366f1;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.9rem;'>"
                 msg += f"<b style='color:#334155;'>Événement analysé :</b> {v.get('comprehension','')}<br>"
                 msg += f"<b style='color:#334155;'>Profil :</b> {'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} ({v.get('age','')} ans)<br>"
                 msg += f"<b style='color:#334155;'>Alerte :</b> ⚠️ {v.get('danger','')}</div>"
-                
                 if sugg:
                     msg += "<div style='margin-top:14px;font-weight:600;font-size:0.95rem;color:#15803d;'>✨ Pistes d'enrichissement pédagogique :</div>"
                     msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;margin-bottom:8px;'>Pour maximiser l'impact du scénario, vous pouvez intégrer l'une de ces propositions :</div>"
-                
                 st.markdown(ai_bubble(msg), unsafe_allow_html=True)
 
-                st.markdown("<div style='margin-top:14px;'></div>",unsafe_allow_html=True)
-                
+                st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+
                 if sugg:
                     for sid, s in enumerate(sugg[:3]):
                         if st.button(f"➕ Intégrer : {s}", key=f"add_sugg_{sid}", use_container_width=True):
@@ -1107,12 +1078,12 @@ def main():
                             st.rerun()
 
                 st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>Finalisation (L'analyse vous convient-elle ?) :</b></div>", unsafe_allow_html=True)
-                
-                if st.button("🎬 Merveilleux, Lancer la génération !",type="primary",use_container_width=True):
+                st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>L'analyse vous convient-elle ?</b></div>", unsafe_allow_html=True)
+
+                if st.button("🎬 Merveilleux, Lancer la génération !", type="primary", use_container_width=True):
                     with st.spinner("🎵 Génération narrative en cours…"):
                         try:
-                            data=scenario_ai(st.session_state.betise,v,st.session_state.api_key)
+                            data=scenario_ai(st.session_state.betise, v, st.session_state.api_key)
                             st.session_state.scenario=data
                             char,song,narrations,img_prompts=parse_scenario(data)
                             st.session_state.char=char
@@ -1127,9 +1098,9 @@ def main():
                             st.error(f"Erreur d'API : {e}")
 
                 st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;margin-top:16px;'><b>Ou l'analyse est incorrecte ?</b></div>", unsafe_allow_html=True)
-                c1,c2=st.columns([1,1])
+                c1, c2 = st.columns([1,1])
                 with c1:
-                    if st.button("🔄 L'IA s'est trompée (Nouvelles pistes)",use_container_width=True):
+                    if st.button("🔄 L'IA s'est trompée (Nouvelles pistes)", use_container_width=True):
                         with st.spinner("🤖 Calcul de nouvelles interprétations..."):
                             try:
                                 st.session_state.val = validate_ai(st.session_state.betise,st.session_state.api_key)

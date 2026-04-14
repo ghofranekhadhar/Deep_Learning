@@ -215,6 +215,45 @@ def _call(api_key: str, prompt: str, max_tok: int = 800) -> dict:
 def validate_ai(betise: str, api_key: str) -> dict:
     return _call(api_key, VAL_PROMPT.replace("{betise}", betise), 900)
 
+# ─────────────────────────────────────────
+#  CHAT PROMPT — conversation libre + détection scénario
+# ─────────────────────────────────────────
+CHAT_PROMPT = """
+Tu es un assistant pédagogique chaleureux, bienveillant et professionnel, spécialisé dans
+l'éducation et la sécurité des enfants de 3 à 8 ans. Tu parles UNIQUEMENT français.
+
+Règle 1 — CONVERSATION NORMALE : Si le parent dit bonjour, pose une question générale,
+parle de la météo, demande une définition, etc. → réponds naturellement et chaleureusement.
+
+Règle 2 — MODE SCÉNARIO : Si le parent décrit un comportement DANGEREUX ou INTERDIT d'un
+enfant (en mentionnant un prénom et un âge), -> active le mode scénario éducatif.
+
+Réponds UNIQUEMENT en JSON valide sans markdown :
+
+Pour conversation normale :
+{{"type":"general","response":"ta réponse naturelle et amicale"}}
+
+Pour scénario éducatif :
+{{"type":"scenario","response":"réponse naturelle qui confirme la compréhension",
+"valide":true,"raison":"","prenom":"prénom","age":5,"genre":"garçon ou fille",
+"danger":"3 mots","theme":"electric|kitchen|meds|pool|road|fire|general",
+"comprehension":"ce que l'enfant fait (1 phrase bienveillante)",
+"conseils":["conseil 1","conseil 2","conseil 3"],
+"message_parent":"message encourageant",
+"suggestions":["phrase enrichie 1","phrase enrichie 2"]}}
+
+Pour message hors sujet ou inapproprié :
+{{"type":"invalid","response":"explication polie pourquoi tu ne peux pas aider",
+"suggestions":["exemple de message adapté 1","exemple 2"]}}
+
+Message du parent : {message}
+"""
+
+def chat_ai(message: str, api_key: str) -> dict:
+    """Analyse le message et retourne type general/scenario/invalid + réponse."""
+    prompt = CHAT_PROMPT.replace("{message}", message)
+    return _call(api_key, prompt, 1200)
+
 def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     theme_val = val.get("theme") or "general"
     t = THEMES.get(theme_val, THEMES["general"])
@@ -930,7 +969,8 @@ def main():
     defaults={"step":1,"api_key":"","betise":"","val":None,
               "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
               "theme":"general","show_key":False,"analyzing":False,
-              "confirmed_yes":False,"confirmed_no":False,"editing_msg":False}
+              "confirmed_yes":False,"confirmed_no":False,
+              "editing_msg":False,"chat_history":[]}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
@@ -982,250 +1022,251 @@ def main():
     st.markdown(stepper(st.session_state.step),unsafe_allow_html=True)
 
     # ══════════════════════════════════════
-    #  ÉTAPE 1 — LA BÊTISE + VALIDATION INLINE
+    #  ÉTAPE 1 — CHAT PÉDAGOGIQUE CONVERSATIONNEL
     # ══════════════════════════════════════
-    if st.session_state.step==1:
+    if st.session_state.step == 1:
         import datetime as _dt
-        _now = _dt.datetime.now().strftime("%H:%M")
+        import html as _html
 
-        def ai_bubble(html_content, ts=None):
-            t = ts or _now
+        def _ts():
+            return _dt.datetime.now().strftime("%H:%M")
+
+        def make_ai_bubble(html_content, ts=""):
+            """Retourne le HTML d'une bulle IA (gauche)."""
             return (
                 f'<div class="chat-row ai">'
-                f'  <div class="chat-avatar ai-av">🤖</div>'
-                f'  <div class="chat-content">'
-                f'    <div class="chat-meta ai">Assistant Pédagogique · {t}</div>'
-                f'    <div class="chat-bubble ai">{html_content}</div>'
-                f'  </div>'
-                f'</div>'
+                f'<div class="chat-avatar ai-av">🤖</div>'
+                f'<div class="chat-content">'
+                f'<div class="chat-meta ai">Assistant Pédagogique{" · "+ts if ts else ""}</div>'
+                f'<div class="chat-bubble ai">{html_content}</div>'
+                f'</div></div>'
             )
 
-        def user_bubble(html_content, ts=None):
-            t = ts or _now
+        def make_user_bubble(html_content, ts=""):
+            """Retourne le HTML d'une bulle parent (droite)."""
             return (
                 f'<div class="chat-row user">'
-                f'  <div class="chat-avatar user-av">👤</div>'
-                f'  <div class="chat-content">'
-                f'    <div class="chat-meta user">Vous · {t}</div>'
-                f'    <div class="chat-bubble user">{html_content}</div>'
-                f'  </div>'
-                f'</div>'
+                f'<div class="chat-avatar user-av">👤</div>'
+                f'<div class="chat-content">'
+                f'<div class="chat-meta user">Vous{" · "+ts if ts else ""}</div>'
+                f'<div class="chat-bubble user">{html_content}</div>'
+                f'</div></div>'
             )
 
-        # ── EN-TÊTE SECTION ──
+        # ── EN-TÊTE ──
         st.markdown(
             '<div class="chat-section-header">'
-            '  <div class="csh-icon">🎓</div>'
-            '  <div>'
-            '    <div class="csh-title">Consultation avec l\'Assistant Pédagogique</div>'
-            '    <div class="csh-sub">Décrivez la situation de votre enfant — l\'IA génère un scénario éducatif personnalisé</div>'
-            '  </div>'
-            '</div>',
+            '<div class="csh-icon">🎓</div>'
+            '<div>'
+            '<div class="csh-title">Assistant Pédagogique — Chat</div>'
+            '<div class="csh-sub">Discutez librement · Je détecte automatiquement les situations de danger enfant</div>'
+            '</div></div>',
             unsafe_allow_html=True
         )
 
         # ══════════════════════════════════════
-        # 1) MESSAGE D'ACCUEIL — TOUJOURS AFFICHÉ EN PREMIER
+        # AFFICHAGE DE TOUT LE CHAT EN UN SEUL BLOC HTML
+        # (garantit l'alignement droite/gauche parfait)
         # ══════════════════════════════════════
-        msg_intro = (
-            "<div style='margin-bottom:10px;font-size:0.95rem;font-weight:600;color:#1e293b;'>"
-            "Bonjour ! Je suis votre <b>Assistant Pédagogique</b> spécialisé en sécurité enfantine."
+        greeting_html = (
+            "<div style='font-size:0.95rem;font-weight:600;color:#1e293b;margin-bottom:8px;'>"
+            "Bonjour ! Je suis votre <b>Assistant Pédagogique</b> 👋"
             "</div>"
             "<div style='font-size:0.88rem;color:#475569;line-height:1.7;'>"
-            "Pour générer un <b>scénario éducatif animé</b> adapté à votre enfant, "
-            "veuillez me décrire la situation en précisant :<br>"
-            "<ul style='margin:8px 0 8px 18px;padding:0;'>"
-            "<li>Le <b>prénom</b> et l'<b>âge</b> de l'enfant</li>"
-            "<li>Le <b>comportement dangereux</b> ou interdit observé</li>"
-            "</ul>"
-            "Vous pouvez également sélectionner un <b>exemple rapide</b> ci-dessous pour démarrer immédiatement."
+            "Je suis là pour vous aider sur tout ce qui concerne votre enfant.<br>"
+            "<b>Parlez-moi librement</b> — si vous décrivez une situation de danger,"
+            " je génère automatiquement un scénario éducatif animé personnalisé ✨"
             "</div>"
         )
-        st.markdown(ai_bubble(msg_intro, "09:00"), unsafe_allow_html=True)
+
+        # Construire le HTML de tout l'historique
+        chat_html = '<div style="width:100%;display:flex;flex-direction:column;">'
+        chat_html += make_ai_bubble(greeting_html, "")
+        for msg in st.session_state.chat_history:
+            txt = _html.escape(msg["content"]).replace("\n", "<br>")
+            if msg["role"] == "user":
+                chat_html += make_user_bubble(txt, msg.get("ts", ""))
+            else:
+                chat_html += make_ai_bubble(txt, msg.get("ts", ""))
+        chat_html += '</div>'
+        st.markdown(chat_html, unsafe_allow_html=True)
 
         # ══════════════════════════════════════
-        # 2) MESSAGE DU PARENT — aligné à droite (style Messenger)
+        # BOUTONS D'ACTION — si dernier msg IA est un scénario
         # ══════════════════════════════════════
-        if st.session_state.betise.strip() and st.session_state.val is not None:
-            import html as _html
-            safe_betise = _html.escape(st.session_state.betise).replace("\n", "<br>")
-            # Bulle pleine largeur → le CSS flex-end l'aligne automatiquement à droite
-            st.markdown(user_bubble(safe_betise), unsafe_allow_html=True)
-            # Bouton ✏️ en colonne droite juste sous la bulle
-            _gap, _edit_btn = st.columns([5, 1])
-            with _edit_btn:
-                if st.button("✏️ Modifier", key="btn_edit_msg",
-                             help="Modifier ce message", use_container_width=True):
-                    st.session_state.editing_msg = True
-                    st.rerun()
-
-        # ══════════════════════════════════════
-        # 3) RÉPONSE DE L'IA — affichée sous le message parent
-        # ══════════════════════════════════════
-        if st.session_state.val is not None:
-            v  = st.session_state.val
-            t  = THEMES.get(st.session_state.theme, THEMES["general"])
+        last_val = st.session_state.val
+        if last_val and last_val.get("type") == "scenario" and last_val.get("valide"):
+            v = last_val
             sugg = v.get("suggestions", [])
 
-            if v.get("valide"):
-                msg  = "<div style='margin-bottom:8px;font-size:0.95rem;'>J'ai analysé votre description. Voici les éléments clés retenus :</div>"
-                msg += "<div style='background:#f8fafc;border-left:3px solid #6366f1;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;font-size:0.9rem;'>"
-                msg += f"<b style='color:#334155;'>Événement analysé :</b> {v.get('comprehension','')}<br>"
-                msg += f"<b style='color:#334155;'>Profil :</b> {'👧' if v.get('genre')=='fille' else '👦'} {v.get('prenom','?')} ({v.get('age','')} ans)<br>"
-                msg += f"<b style='color:#334155;'>Alerte :</b> ⚠️ {v.get('danger','')}</div>"
-                if sugg:
-                    msg += "<div style='margin-top:14px;font-weight:600;font-size:0.95rem;color:#15803d;'>✨ Pistes d'enrichissement pédagogique :</div>"
-                    msg += "<div style='font-style:italic;font-size:0.85rem;color:#64748b;margin-bottom:8px;'>Pour maximiser l'impact du scénario, vous pouvez intégrer l'une de ces propositions :</div>"
-                st.markdown(ai_bubble(msg), unsafe_allow_html=True)
+            st.markdown(
+                "<div style='background:linear-gradient(135deg,#f0fdf4,#dcfce7);"
+                "border:1px solid #86efac;border-radius:12px;padding:12px 16px;"
+                "margin-top:12px;font-size:0.88rem;color:#166534;'>"
+                f"<b>🎬 Scénario prêt :</b> {v.get('prenom','?')} · {v.get('age','')} ans · ⚠️ {v.get('danger','')}"
+                "</div>",
+                unsafe_allow_html=True
+            )
 
-                st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
 
-                if sugg:
-                    for sid, s in enumerate(sugg[:3]):
-                        if st.button(f"➕ Intégrer : {s}", key=f"add_sugg_{sid}", use_container_width=True):
-                            b = st.session_state.betise.strip()
-                            if b and not (b.endswith(".") or b.endswith(",") or b.endswith("!") or b.endswith("?")): b+=","
-                            if b: b+=" "
-                            st.session_state.betise = b + s
-                            with st.spinner("🤖 Mise à jour de l'analyse avec votre ajout..."):
-                                try:
-                                    st.session_state.val = validate_ai(st.session_state.betise, st.session_state.api_key)
-                                except Exception as e:
-                                    st.error(f"Erreur d'API : {e}")
-                            st.rerun()
+            if sugg:
+                for sid, s in enumerate(sugg[:2]):
+                    if st.button(f"➕ Enrichir : {s}", key=f"add_sugg_{sid}",
+                                 use_container_width=True):
+                        new_msg = st.session_state.betise.strip()
+                        if new_msg and not new_msg[-1] in ".,!?": new_msg += ","
+                        new_msg = (new_msg + " " + s).strip()
+                        st.session_state.betise = new_msg
+                        _now = _ts()
+                        st.session_state.chat_history.append(
+                            {"role":"user","content":new_msg,"ts":_now})
+                        with st.spinner("🤖 Mise à jour…"):
+                            try:
+                                res = chat_ai(new_msg, st.session_state.api_key)
+                                reply = res.get("response", "")
+                                st.session_state.chat_history.append(
+                                    {"role":"ai","content":reply,"ts":_ts()})
+                                st.session_state.val = res
+                                if res.get("theme") in THEMES:
+                                    st.session_state.theme = res["theme"]
+                            except Exception as e:
+                                st.error(f"Erreur : {e}")
+                        st.rerun()
 
-                st.markdown("<hr style='margin:16px 0;border-color:#e2e8f0;'>", unsafe_allow_html=True)
-                st.markdown("<div style='font-size:0.85rem;color:#64748b;margin-bottom:8px;'><b>L'analyse vous convient-elle ?</b></div>", unsafe_allow_html=True)
-
-                if st.button("🎬 Merveilleux, Lancer la génération !", type="primary", use_container_width=True):
-                    with st.spinner("🎵 Génération narrative en cours…"):
+            c_gen, c_new = st.columns([3, 1])
+            with c_gen:
+                if st.button("🎬 Générer le dessin animé éducatif !",
+                             type="primary", use_container_width=True):
+                    with st.spinner("🎵 Génération du scénario…"):
                         try:
-                            data=scenario_ai(st.session_state.betise, v, st.session_state.api_key)
-                            st.session_state.scenario=data
-                            char,song,narrations,img_prompts=parse_scenario(data)
-                            st.session_state.char=char
-                            st.session_state.song=song
-                            st.session_state.narrations=narrations
-                            st.session_state.img_prompts=img_prompts
-                            st.session_state.step=2
+                            betise_src = st.session_state.betise
+                            data = scenario_ai(betise_src, v, st.session_state.api_key)
+                            st.session_state.scenario = data
+                            char, song, narrations, img_prompts = parse_scenario(data)
+                            st.session_state.char = char
+                            st.session_state.song = song
+                            st.session_state.narrations = narrations
+                            st.session_state.img_prompts = img_prompts
+                            st.session_state.step = 2
                             st.rerun()
                         except json.JSONDecodeError:
-                            st.error("L'IA n'a pas renvoyé un format JSON valide.")
+                            st.error("Format JSON invalide.")
                         except Exception as e:
-                            st.error(f"Erreur d'API : {e}")
-
-                if st.button("🔄 Nouvelle interprétation", use_container_width=True):
-                    with st.spinner("🤖 Calcul de nouvelles interprétations..."):
+                            st.error(f"Erreur : {e}")
+            with c_new:
+                if st.button("🔄 Réinterpréter", use_container_width=True):
+                    with st.spinner("🤖 Nouvelle interprétation…"):
                         try:
-                            st.session_state.val = validate_ai(st.session_state.betise, st.session_state.api_key)
+                            res = chat_ai(st.session_state.betise,
+                                          st.session_state.api_key)
+                            reply = res.get("response", "")
+                            # Met à jour le dernier msg IA dans l'historique
+                            if st.session_state.chat_history and \
+                               st.session_state.chat_history[-1]["role"] == "ai":
+                                st.session_state.chat_history[-1]["content"] = reply
+                            else:
+                                st.session_state.chat_history.append(
+                                    {"role":"ai","content":reply,"ts":_ts()})
+                            st.session_state.val = res
+                            if res.get("theme") in THEMES:
+                                st.session_state.theme = res["theme"]
                             st.rerun()
                         except Exception as e:
                             st.error(f"Erreur : {e}")
 
-            else:
-                # Non valide
-                msg  = "<div style='font-weight:600;color:#991b1b;margin-bottom:8px;'>⚠️ Message non reconnu</div>"
-                msg += "<div style='margin-bottom:10px;font-size:0.95rem;'>Le contenu renseigné ne répond pas aux critères de notre studio éducatif.</div>"
-                msg += f"<div style='background:#fee2e2;border-left:3px solid #ef4444;padding:8px 12px;border-radius:0 4px 4px 0;font-size:0.9rem;color:#991b1b;margin-bottom:8px;'>{v.get('raison','')}</div>"
-                if sugg:
-                    msg += "<div style='font-size:0.86rem;font-weight:600;color:#475569;margin-top:8px;margin-bottom:4px;'>💡 Suggestions :</div>"
-                    for s in sugg[:3]:
-                        msg += f"<div style='font-size:0.85rem;color:#6366f1;padding:2px 0;'>→ {s}</div>"
-                msg += "<div style='font-size:0.8rem;color:#94a3b8;margin-top:10px;font-style:italic;'>Enrichissez votre message à l'aide du champ ci-dessous et renvoyez-le.</div>"
-                st.markdown(ai_bubble(msg), unsafe_allow_html=True)
-
         # ══════════════════════════════════════
-        # 4) ZONE DE SAISIE — TOUJOURS VISIBLE
+        # ZONE DE SAISIE — TOUJOURS VISIBLE
         # ══════════════════════════════════════
         _editing = st.session_state.get("editing_msg", False)
-
-        if _editing:
-            st.markdown(
-                "<div style='margin-top:20px;background:linear-gradient(135deg,#ede9fe,#f5f3ff);"
-                "border:2px solid #7c3aed;border-radius:12px;padding:12px 16px;"
-                "display:flex;align-items:center;gap:10px;'>"
-                "<span style='font-size:1.3rem;'>✏️</span>"
-                "<div><div style='font-size:0.82rem;font-weight:800;color:#5b21b6;"
-                "text-transform:uppercase;letter-spacing:0.05em;'>Mode modification</div>"
-                "<div style='font-size:0.8rem;color:#6d28d9;'>Modifiez votre message ci-dessous "
-                "puis cliquez sur <b>Envoyer la modification</b></div></div>"
-                "</div>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                "<div style='margin-top:20px;border-top:2px solid #e8eaf0;padding-top:14px;'>"
-                "<div style='font-size:0.78rem;font-weight:700;color:#6366f1;text-transform:uppercase;"
-                "letter-spacing:0.06em;margin-bottom:8px;'>✏️ Votre message — enrichissez à tout moment</div>"
-                "</div>",
-                unsafe_allow_html=True
-            )
-
-        betise = st.text_area(
-            "Message", value=st.session_state.betise,
-            placeholder="Ex : Mon fils Adam, 5 ans, touche les prises électriques. Il le fait souvent le soir...",
-            height=110, label_visibility="collapsed"
+        st.markdown(
+            "<div style='margin-top:20px;border-top:2px solid #e8eaf0;padding-top:14px;'></div>",
+            unsafe_allow_html=True
         )
-        if betise != st.session_state.betise:
-            st.session_state.betise = betise
+        if _editing:
+            st.info("✏️ **Mode modification** — Modifiez ci-dessous et renvoyez.")
 
-        c_clear, c_check = st.columns([1, 3])
+        user_input = st.text_area(
+            "Votre message",
+            value=st.session_state.betise,
+            placeholder="Ex : Bonjour ! / Mon fils Adam, 5 ans, touche les prises électriques... / C'est quoi un danger ?",
+            height=100, label_visibility="collapsed"
+        )
+        if user_input != st.session_state.betise:
+            st.session_state.betise = user_input
+
+        c_clear, c_send = st.columns([1, 3])
         with c_clear:
             if st.button("🗑️ Vider", use_container_width=True, key="btn_vider"):
                 st.session_state.betise = ""
                 st.session_state.val = None
                 st.session_state.editing_msg = False
                 st.rerun()
-        with c_check:
+        with c_send:
             if _editing:
-                lbl = "📤 Envoyer la modification"
-            elif st.session_state.val is None:
-                lbl = "📤 Envoyer"
+                lbl_btn = "📤 Envoyer la modification"
+            elif not st.session_state.chat_history:
+                lbl_btn = "📤 Envoyer"
             else:
-                lbl = "🔄 Mettre à jour l'analyse"
-            if st.button(lbl, type="primary", use_container_width=True, key="btn_envoyer"):
+                lbl_btn = "📤 Envoyer"
+            if st.button(lbl_btn, type="primary",
+                         use_container_width=True, key="btn_envoyer"):
                 if not st.session_state.api_key.strip():
                     st.error("⚠️ Entre ta clé API Groq dans la barre latérale gauche.")
                 elif not st.session_state.betise.strip():
-                    st.error("⚠️ Décris la bêtise de ton enfant.")
+                    st.error("⚠️ Écris ton message.")
                 elif not _GROQ_OK:
-                    st.error("La bibliothèque `groq` n'est pas installée. Relance l'app.")
+                    st.error("La bibliothèque `groq` n'est pas installée.")
                 else:
-                    with st.spinner("🤖 L'IA analyse votre message…"):
+                    _now = _ts()
+                    msg_texte = st.session_state.betise.strip()
+                    # Ajoute le message parent à l'historique
+                    st.session_state.chat_history.append(
+                        {"role": "user", "content": msg_texte, "ts": _now})
+                    with st.spinner("🤖 L'IA réfléchit…"):
                         try:
-                            result = validate_ai(st.session_state.betise, st.session_state.api_key)
-                            st.session_state.val = result
+                            res = chat_ai(msg_texte, st.session_state.api_key)
+                            reply = res.get("response", "Je suis là, continuez !")
+                            # Ajoute la réponse IA à l'historique
+                            st.session_state.chat_history.append(
+                                {"role": "ai", "content": reply, "ts": _ts()})
+                            # Mise à jour état
+                            st.session_state.val = res if res.get("type") == "scenario" else None
+                            if res.get("theme") in THEMES:
+                                st.session_state.theme = res["theme"]
                             st.session_state.editing_msg = False
-                            if result.get("theme") in THEMES:
-                                st.session_state.theme = result["theme"]
+                            st.session_state.betise = ""
                             st.rerun()
-                        except json.JSONDecodeError:
-                            st.error("L'IA n'a pas renvoyé un JSON valide. Réessaie.")
                         except Exception as e:
+                            # Retire le msg parent si erreur
+                            st.session_state.chat_history.pop()
                             st.error(f"Erreur API Groq : {e}")
 
+        # Bouton ✏️ Modifier dernier message si historique non vide
+        if st.session_state.chat_history:
+            last_user = next(
+                (m for m in reversed(st.session_state.chat_history)
+                 if m["role"] == "user"), None)
+            if last_user and not _editing:
+                _gap, _ebtn = st.columns([5, 1])
+                with _ebtn:
+                    if st.button("✏️ Modifier", key="btn_edit_msg",
+                                 use_container_width=True):
+                        st.session_state.betise = last_user["content"]
+                        st.session_state.editing_msg = True
+                        st.rerun()
 
-        # ── EXEMPLES EN DESSOUS (TOUJOURS AFFICHÉS POUR ENRICHIR) ──
-        st.markdown("<span class='sec-label'>💡 Quelques exemples pour t'inspirer :</span>",
+        # ── EXEMPLES RAPIDES ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<span class='sec-label'>💡 Exemples pour démarrer :</span>",
                     unsafe_allow_html=True)
-        cols=st.columns(3)
-        for idx,ex in enumerate(EXAMPLES):
-            with cols[idx%3]:
-                if st.button(f"{ex['icon']} {ex['label']}",key=f"ex_{idx}",
-                             use_container_width=True,help=ex["text"]):
-                    st.session_state.betise=ex["text"]
-                    st.session_state.theme=ex["theme"]
-                    if st.session_state.api_key.strip() and _GROQ_OK:
-                        with st.spinner("🤖 Chargement de l'exemple..."):
-                            try:
-                                st.session_state.val = validate_ai(ex["text"], st.session_state.api_key)
-                            except:
-                                st.session_state.val = None
-                    else:
-                        st.session_state.val = None
-                        
-                    st.session_state.confirmed_yes=False
-                    st.session_state.confirmed_no=False
+        cols = st.columns(3)
+        for idx, ex in enumerate(EXAMPLES):
+            with cols[idx % 3]:
+                if st.button(f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
+                             use_container_width=True, help=ex["text"]):
+                    st.session_state.betise = ex["text"]
+                    st.session_state.theme = ex["theme"]
                     st.rerun()
 
     # ══════════════════════════════════════
@@ -1361,6 +1402,7 @@ def main():
                 with open(fp,"rb")as fv: vb=fv.read()
             status.update(label="✅ Vidéo prête!",state="complete",expanded=False)
 
+        
         st.success(f"🎉 La vidéo de **{char.prenom}** est prête!")
         st.video(vb)
         danger_slug=data.get("danger_court","").replace(" ","_")

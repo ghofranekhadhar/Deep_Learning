@@ -1165,56 +1165,9 @@ def main():
                                      help="Modifier ce message"):
                             st.session_state.editing_index = i
                             st.session_state.editing_content = msg["content"]
-                            st.rerun()                      height=90, label_visibility="collapsed",
-                            key=f"inline_edit_{i}"
-                        )
-                        st.session_state.editing_content = edited
-                        _ca, _cc = st.columns([1, 1])
-                        with _cc:
-                            if st.button("✓ Confirmer", key=f"confirm_{i}",
-                                         type="primary", use_container_width=True):
-                                new_txt = st.session_state.editing_content.strip()
-                                if new_txt:
-                                    # Met à jour le message dans l'historique
-                                    st.session_state.chat_history[i]["content"] = new_txt
-                                    # Supprime les messages suivants
-                                    st.session_state.chat_history = \
-                                        st.session_state.chat_history[:i+1]
-                                    st.session_state.editing_index = None
-                                    st.session_state.editing_content = ""
-                                    st.session_state.val = None
-                                    # Re-soumet à l'IA
-                                    with st.spinner("🤖 Analyse du message modifié…"):
-                                        try:
-                                            res = chat_ai(new_txt, st.session_state.api_key)
-                                            reply = res.get("response", "Bien reçu !")
-                                            st.session_state.chat_history.append(
-                                                {"role":"ai","content":reply,"ts":_ts()})
-                                            st.session_state.val = res if res.get("type")=="scenario" else None
-                                            if res.get("theme") in THEMES:
-                                                st.session_state.theme = res["theme"]
-                                        except Exception as e:
-                                            st.error(f"Erreur : {e}")
-                                    st.rerun()
-                        with _ca:
-                            if st.button("✕ Annuler", key=f"cancel_{i}",
-                                         use_container_width=True):
-                                st.session_state.editing_index = None
-                                st.session_state.editing_content = ""
-                                st.rerun()
-                else:
-                    # ─ AFFICHAGE NORMAL bulle parent ─
-                    _sp, _bcol = st.columns([1, 6])
-                    with _bcol:
-                        _editbtn, _bubbcol = st.columns([0.4, 5.6])
-                        with _editbtn:
-                            if st.button("✏️", key=f"edit_msg_{i}",
-                                         help="Modifier ce message"):
-                                st.session_state.editing_index = i
-                                st.session_state.editing_content = msg["content"]
-                                st.rerun()
-                        with _bubbcol:
-                            st.markdown(ds_user_bubble(txt, ts), unsafe_allow_html=True)
+                            st.rerun()
+
+
 
 
 

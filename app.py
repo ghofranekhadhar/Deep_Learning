@@ -806,37 +806,60 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
 .chat-row.user { justify-content: flex-end; flex-direction: row-reverse; }
 .chat-row.ai  { justify-content: flex-start; }
 
-/* Force les wrappers Streamlit à ne pas contraindre la largeur */
-[data-testid="stMarkdownContainer"]:has(.chat-row) {
+/* ── Chat Interface WhatsApp style ── */
+
+/* Wrapper général de toute une ligne de chat */
+.chat-row {
+    display: flex !important;
+    align-items: flex-end !important;
     width: 100% !important;
-    max-width: 100% !important;
+    margin-top: 10px !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
 }
-[data-testid="stMarkdownContainer"] > .chat-row {
+/* Bot → GAUCHE */
+.chat-row.ai  { flex-direction: row !important; justify-content: flex-start !important; }
+/* Parent → DROITE */
+.chat-row.user { flex-direction: row-reverse !important; justify-content: flex-start !important; }
+
+/* Forcer pleine largeur sur les wrappers Streamlit */
+[data-testid="stMarkdownContainer"] {
     width: 100% !important;
+    display: block !important;
 }
+[data-testid="stMarkdownContainer"] > div { width: 100% !important; }
 
 /* Bulles */
-.chat-bubble { max-width: 82%; padding: 14px 18px; border-radius: 18px; font-size: 0.93rem; line-height: 1.65; word-break: break-word; position: relative; }
+.chat-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    word-break: break-word;
+    max-width: 75%;
+}
 .chat-bubble.user {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: #ffffff;
-    border-bottom-right-radius: 4px;
-    box-shadow: 0 4px 18px rgba(79,70,229,0.28);
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    color: #ffffff !important;
+    border-bottom-right-radius: 4px !important;
+    box-shadow: 0 4px 18px rgba(79,70,229,0.28) !important;
+    margin-left: auto !important;
 }
 .chat-bubble.ai {
-    background: #ffffff;
-    color: #1e293b;
-    border-bottom-left-radius: 4px;
-    border: 1px solid #e8eaf0;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border-bottom-left-radius: 4px !important;
+    border: 1px solid #e8eaf0 !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
+    margin-right: auto !important;
 }
 
 /* Avatar */
 .chat-avatar {
-    width: 40px; height: 40px; border-radius: 50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size: 1.3rem; flex-shrink: 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 .chat-avatar.ai-av {
     background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -847,18 +870,22 @@ p,div,span,label{color:#334155!important;font-family:'Inter',sans-serif!importan
     border: 2px solid #bae6fd;
 }
 
-/* Méta-info (nom + heure) */
+/* Méta-info */
 .chat-meta {
-    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
-    text-transform: uppercase; margin-bottom: 5px; opacity: 0.75;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 4px; opacity: 0.7;
+    color: #64748b !important;
 }
-.chat-meta.ai  { color: #6366f1; text-align: left; }
-.chat-meta.user { color: #7dd3fc; text-align: right; }
+.chat-row.user .chat-meta { text-align: right !important; color: #a5b4fc !important; }
+.chat-row.ai  .chat-meta { text-align: left !important;  color: #6366f1 !important; }
 
-/* Wrapper bulle + meta */
-.chat-content { display:flex; flex-direction:column; max-width: 82%; }
-.chat-row.user .chat-content { align-items: flex-end; }
-.chat-row.ai  .chat-content { align-items: flex-start; }
+/* Wrapper contenu (bulle + meta) */
+.chat-content {
+    display: flex; flex-direction: column;
+    max-width: calc(100% - 56px);
+}
+.chat-row.user .chat-content { align-items: flex-end !important; }
+.chat-row.ai  .chat-content { align-items: flex-start !important; }
 
 /* Titre section chat */
 .chat-section-header {
@@ -1065,8 +1092,8 @@ def main():
         )
 
         # ══════════════════════════════════════
-        # AFFICHAGE DE TOUT LE CHAT EN UN SEUL BLOC HTML
-        # (garantit l'alignement droite/gauche parfait)
+        # AFFICHAGE DU CHAT — message par message
+        # (bouton ✏️ intégré après chaque bulle parent)
         # ══════════════════════════════════════
         greeting_html = (
             "<div style='font-size:0.95rem;font-weight:600;color:#1e293b;margin-bottom:8px;'>"
@@ -1078,18 +1105,48 @@ def main():
             " je génère automatiquement un scénario éducatif animé personnalisé ✨"
             "</div>"
         )
+        # Message d'accueil (toujours affiché)
+        st.markdown(make_ai_bubble(greeting_html, ""), unsafe_allow_html=True)
 
-        # Construire le HTML de tout l'historique
-        chat_html = '<div style="width:100%;display:flex;flex-direction:column;">'
-        chat_html += make_ai_bubble(greeting_html, "")
-        for msg in st.session_state.chat_history:
+        # Historique message par message
+        for i, msg in enumerate(st.session_state.chat_history):
             txt = _html.escape(msg["content"]).replace("\n", "<br>")
+            ts  = msg.get("ts", "")
+
             if msg["role"] == "user":
-                chat_html += make_user_bubble(txt, msg.get("ts", ""))
+                # Bulle parent à DROITE + bouton ✏️ compact juste à côté
+                _bcol, _bubble_col = st.columns([0.5, 9.5])
+                with _bcol:
+                    # bouton ✏️ aligné côté gauche de la bulle parent
+                    # (affiché à gauche de la bulle, visuellement "à côté")
+                    st.markdown(
+                        "<div style='display:flex;justify-content:flex-end;"
+                        "align-items:flex-end;height:100%;padding-bottom:4px;'></div>",
+                        unsafe_allow_html=True
+                    )
+                with _bubble_col:
+                    # Ligne : ✏️ bouton + bulle côte à côte
+                    _eb, _mb = st.columns([1, 8])
+                    with _eb:
+                        st.markdown(
+                            "<div style='display:flex;align-items:flex-end;"
+                            "height:100%;padding-bottom:6px;'>",
+                            unsafe_allow_html=True
+                        )
+                        if st.button("✏️", key=f"edit_msg_{i}",
+                                     help="Modifier ce message"):
+                            st.session_state.betise = msg["content"]
+                            st.session_state.editing_msg = True
+                            st.rerun()
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    with _mb:
+                        st.markdown(make_user_bubble(txt, ts),
+                                    unsafe_allow_html=True)
             else:
-                chat_html += make_ai_bubble(txt, msg.get("ts", ""))
-        chat_html += '</div>'
-        st.markdown(chat_html, unsafe_allow_html=True)
+                # Bulle IA à GAUCHE — pleine largeur
+                st.markdown(make_ai_bubble(txt, ts), unsafe_allow_html=True)
+
+
 
         # ══════════════════════════════════════
         # BOUTONS D'ACTION — si dernier msg IA est un scénario
@@ -1184,7 +1241,7 @@ def main():
             unsafe_allow_html=True
         )
         if _editing:
-            st.info("✏️ **Mode modification** — Modifiez ci-dessous et renvoyez.")
+            st.info("✏️ **Mode modification** — Modifiez le message ci-dessous et renvoyez.")
 
         user_input = st.text_area(
             "Votre message",
@@ -1241,20 +1298,6 @@ def main():
                             # Retire le msg parent si erreur
                             st.session_state.chat_history.pop()
                             st.error(f"Erreur API Groq : {e}")
-
-        # Bouton ✏️ Modifier dernier message si historique non vide
-        if st.session_state.chat_history:
-            last_user = next(
-                (m for m in reversed(st.session_state.chat_history)
-                 if m["role"] == "user"), None)
-            if last_user and not _editing:
-                _gap, _ebtn = st.columns([5, 1])
-                with _ebtn:
-                    if st.button("✏️ Modifier", key="btn_edit_msg",
-                                 use_container_width=True):
-                        st.session_state.betise = last_user["content"]
-                        st.session_state.editing_msg = True
-                        st.rerun()
 
         # ── EXEMPLES RAPIDES ──
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1402,7 +1445,6 @@ def main():
                 with open(fp,"rb")as fv: vb=fv.read()
             status.update(label="✅ Vidéo prête!",state="complete",expanded=False)
 
-        
         st.success(f"🎉 La vidéo de **{char.prenom}** est prête!")
         st.video(vb)
         danger_slug=data.get("danger_court","").replace(" ","_")

@@ -222,35 +222,40 @@ CHAT_PROMPT = """
 Tu es un assistant pédagogique chaleureux et professionnel, spécialisé dans la sécurité
 et l'éducation des enfants de 3 à 8 ans. Tu parles UNIQUEMENT français.
 
-CONTEXTE IMPORTANT : Tu parles TOUJOURS à un PARENT à propos de SON ENFANT.
-Même si le parent pose une question générale (bonjour, c'est quoi un chat, etc.),
-tu réponds de façon chaleureuse ET tu ramenes subtilement vers l'enfant, les apprentissages,
-ou la sécurité infantile. Tu n'es jamais un assistant général : tu es l'ami du parent pour
-bien éduquer son enfant.
+CONTEXTE IMPORTANT : Tu parles TOUJOURS à un PARENT à propos de SON ENFANT spécifique.
+Tu ramenes TOUJOURS vers l'éducation, la sécurité infantile et les comportements dangereux.
 
-Règle 1 — CONVERSATION : Si le parent dit bonjour, pose une question, demande un conseil
-  → réponds naturellement, chaleureusement, ET ramene vers l'enfant / l'éducation.
+Règle 1 — CONVERSATION : réponds chaleureusement ET oriente vers l'éducation sécurité.
 
 Règle 2 — MODE SCÉNARIO : Si le parent décrit un comportement DANGEREUX ou INTERDIT d'un
-  enfant (en mentionnant un prénom et un âge) → active le mode scénario éducatif.
+  enfant (prénom + âge) ou ENRICHIT un scénario existant ("malgré mes refus",
+  "plusieurs fois", "il recommence", etc.) → active le mode scénario.
+
+Pour les SUGGESTIONS : génère 2 phrases complètes que le parent peut utiliser TELLES QUELLES
+  pour enrichir sa description. Exemples de format :
+  - "malgré mes refus répétés"
+  - "il recommence dès que j'ai le dos tourné"
+  - "il a déjà failli se blesser"
+  - "plusieurs fois par jour"
+  Ces suggestions doivent être courtes, concrètes, et DIRECTEMENT utilisables.
 
 Réponds UNIQUEMENT en JSON valide sans markdown :
 
 Pour conversation normale :
-{{"type":"general","response":"ta réponse naturelle et amicale centrée sur l'enfant et l'éducation"}}
+{{"type":"general","response":"ta réponse naturelle centrée sur l'enfant et l'éducation"}}
 
 Pour scénario éducatif :
-{{"type":"scenario","response":"réponse naturelle qui confirme la compréhension et encourage le parent",
+{{"type":"scenario","response":"réponse naturelle qui confirme et encourage",
 "valide":true,"raison":"","prenom":"prénom","age":5,"genre":"garçon ou fille",
-"danger":"3 mots","theme":"electric|kitchen|meds|pool|road|fire|general",
-"comprehension":"ce que l'enfant fait (1 phrase bienveillante)",
+"danger":"3 mots max","theme":"electric|kitchen|meds|pool|road|fire|general",
+"comprehension":"phrase complète décrivant le comportement de l'enfant",
 "conseils":["conseil 1","conseil 2","conseil 3"],
 "message_parent":"message encourageant",
-"suggestions":["phrase enrichie 1","phrase enrichie 2"]}}
+"suggestions":["phrase courte enrichissement 1","phrase courte enrichissement 2"]}}
 
-Pour message hors sujet ou inapproprié :
-{{"type":"invalid","response":"explication polie, puis ramene vers ton rôle pédagogique",
-"suggestions":["exemple de message adapté 1","exemple 2"]}}
+Pour message hors sujet :
+{{"type":"invalid","response":"explication polie puis ramene vers l'éducation",
+"suggestions":["Mon fils X ans fait...","Ma fille Y ans touche..."]}}
 
 Message du parent : {message}
 """
@@ -1275,11 +1280,16 @@ def main():
                             with st.spinner("🤖 Mise à jour du scénario…"):
                                 try:
                                     _r2 = chat_ai(_nm, st.session_state.api_key)
+                                    reply2 = _r2.get("response","")
                                     st.session_state.chat_history.append(
-                                        {"role":"ai","content":_r2.get("response",""),"ts":_ts()})
-                                    st.session_state.val = _r2 if _r2.get("type")=="scenario" else None
-                                    if _r2.get("theme") in THEMES:
-                                        st.session_state.theme = _r2["theme"]
+                                        {"role":"ai","content":reply2,"ts":_ts()})
+                                    # Si l'IA re-détecte un scénario → mettre à jour
+                                    # Sinon → GARDER l'ancien val (ne pas réinitialiser)
+                                    if _r2.get("type") == "scenario":
+                                        st.session_state.val = _r2
+                                        if _r2.get("theme") in THEMES:
+                                            st.session_state.theme = _r2["theme"]
+                                    # else: val inchangé → bouton génération reste actif
                                 except Exception as _e:
                                     st.error(f"Erreur : {_e}")
                             st.rerun()

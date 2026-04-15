@@ -236,7 +236,7 @@ Règle 2 — DÉTECTION (MODE SCÉNARIO) :
 Dès que le parent décrit N'IMPORTE QUELLE situation inquiétante, bêtise, ou comportement dangereux, ou demande de l'aide sur une action spécifique :
 Exemples : "Mon fils fait des bêtises avec...", "Ma fille n'arrête pas de...", "Mon enfant touche à...", "Que faire quand mon enfant...", "Aide-moi, mon petit..."
   → ACTIVE IMMÉDIATEMENT le mode scénario.
-  → Prénom et âge sont OPTIONNELS (utilise "l'enfant" et 6 ans si absents).
+  → Prénom et âge sont OPTIONNELS (utilise "l'enfant" et null pour l'âge si absents).
   → Ta réponse : phrase de confirmation empathique courte.
 
 Règle 3 — MISES À JOUR ET CORRECTIONS (CRUCIAL) :
@@ -1136,21 +1136,21 @@ def main():
 
         with st.container(border=True):
 
-            # — Bienvenue —
-            st.markdown(
-                '<div class="chat-frame-inner">'
-                + ds_ai_bubble(
-                    "<b>Bonjour ! 👋 Je suis votre Assistant Pédagogique.</b><br>"
-                    "<span style='font-size:0.87rem;'>"
-                    "Décrivez le comportement de votre enfant — je comprends la situation "
-                    "et je génère automatiquement un dessin animé éducatif ✨</span>"
-                )
-                + '</div>',
-                unsafe_allow_html=True
-            )
-
             # — Messages scrollables —
             with st.container(height=280, border=False):
+                # — Bienvenue (déplacé dans la zone scrollable) —
+                st.markdown(
+                    '<div class="chat-frame-inner" style="padding-top:0;">'
+                    + ds_ai_bubble(
+                        "<b>Bonjour ! 👋 Je suis votre Assistant Pédagogique.</b><br>"
+                        "<span style='font-size:0.87rem;'>"
+                        "Décrivez le comportement de votre enfant — je comprends la situation "
+                        "et je génère automatiquement un dessin animé éducatif ✨</span>"
+                    )
+                    + '</div>',
+                    unsafe_allow_html=True
+                )
+                
                 for i, msg in enumerate(st.session_state.chat_history):
                     txt = _html.escape(msg["content"]).replace("\n", "<br>")
                     ts  = msg.get("ts", "")

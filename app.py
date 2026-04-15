@@ -1147,42 +1147,6 @@ def main():
 
                     if msg["role"] == "ai":
                         st.markdown(ds_ai_bubble(txt, ts), unsafe_allow_html=True)
-                        if i == len(st.session_state.chat_history) - 1:
-                            _lv = st.session_state.val
-                            if _lv and _lv.get("type") == "scenario" and _lv.get("valide"):
-                                _sugg = _lv.get("suggestions", [])
-                                if _sugg:
-                                    # Décalage pour aligner avec la bulle de chat (10% espace vide, 90% contenu)
-                                    _sc_empty, _sc_rest = st.columns([0.1, 0.9])
-                                    with _sc_rest:
-                                        st.markdown(
-                                            "<div style='margin-bottom:12px; padding:14px; background: linear-gradient(to right, #eff6ff, #ffffff); border: 1px solid #dbeafe; border-left: 4px solid #3b82f6; border-radius: 10px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05);'>"
-                                            "<div style='font-size:0.88rem; font-weight:700; color:#1e40af; margin-bottom:6px; display:flex; align-items:center; gap:6px;'>"
-                                            "<span>✨ Enrichir la situation (Optionnel)</span></div>"
-                                            "<div style='font-size:0.8rem; color:#475569; margin-bottom:12px;'>"
-                                            "Cliquez sur une suggestion ci-dessous pour ajouter plus de détails :</div>"
-                                            "</div>",
-                                            unsafe_allow_html=True
-                                        )
-                                        _s_cols = st.columns(len(_sugg[:3]))
-                                        for _sid, _s in enumerate(_sugg[:3]):
-                                            with _s_cols[_sid]:
-                                                if st.button(f"✨ {_s}", key=f"chat_enrich_{_sid}", use_container_width=True, help="Ajouter au contexte"):
-                                                    _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
-                                                    st.session_state.betise = _nm
-                                                    st.session_state.chat_history.append({"role": "user", "content": _s, "ts": _ts()})
-                                                    with st.spinner("🤖 Mise à jour…"):
-                                                        try:
-                                                            _r2 = chat_ai(_nm, st.session_state.api_key)
-                                                            reply2 = _r2.get("response","")
-                                                            st.session_state.chat_history.append({"role":"ai","content":reply2,"ts":_ts()})
-                                                            if _r2.get("type") == "scenario":
-                                                                st.session_state.val = _r2
-                                                                if _r2.get("theme") in THEMES:
-                                                                    st.session_state.theme = _r2["theme"]
-                                                        except Exception as _e:
-                                                            st.error(f"Erreur : {_e}")
-                                                    st.rerun()
                     else:
                         if _ei == i:
                             # Mode édition inline
@@ -1260,30 +1224,51 @@ def main():
                 _fc, _fb = st.columns([11, 1])
                 with _fc:
                     st.text_area("msg",
-                        placeholder="Décrivez la bêtise...",
-                        label_visibility="collapsed")
+                        placeholder="Décrivez la bêtise de votre enfant… (Entrée pour envoyer)",
+                        height=72, label_visibility="collapsed", key=_input_key)
                 with _fb:
-                    sub = st.form_submit_button("▶", use_container_width=True)
+                    st.markdown("<div style='margin-top:36px;'></div>", unsafe_allow_html=True)
+                    send_clicked = st.form_submit_button("↑", type="primary",
+                                                         use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ══════════════════════════════════════════════════
+        # LOGIQUE D'ENVOI
+        # ══════════════════════════════════════════════════
+        if send_clicked:
+            _msg = st.session_state.get(_input_key, "").strip()
+            if not st.session_state.api_key.strip():
+                st.error("⚠️ Clé API Groq manquante (barre latérale).")
+            elif not _msg:
+                st.error("⚠️ Écris ton message.")
+            elif not _GROQ_OK:
+                st.error("La bibliothèque `groq` n'est pas installée.")
+            else:
+                if st.session_state.val and st.session_state.val.get("type") == "scenario":
+                    full_msg = f"{st.session_state.betise.rstrip('.,!? ')}, {_msg}"
+                else:
+                    full_msg = _msg
+                    
+                st.session_state.betise = full_msg
                 
-                if sub and st.session_state.msg:
-                    txt = st.session_state.msg.strip()
-                    if txt:
-                        st.session_state.msg = ""
-                        st.session_state.betise = txt
-                        st.session_state.chat_history.append({"role": "user", "content": txt, "ts": _ts()})
-                        with st.spinner("🤖 ..."):
-                            try:
-                                res = chat_ai(txt, st.session_state.api_key)
-                                st.session_state.chat_history.append({"role": "ai", "content": res.get("response", ""), "ts": _ts()})
-                                
-                                if res.get("type") == "scenario":
-                                    st.session_state.val = res
-                                    if res.get("theme") in THEMES:
-                                        st.session_state.theme = res["theme"]
-                            except Exception as e:
-                                st.session_state.chat_history.pop()
-                                st.error(f"Erreur API Groq : {e}")
+                st.session_state.chat_history.append(
+                    {"role": "user", "content": _msg, "ts": _ts()})
+                with st.spinner("🤖 Je comprends la situation…"):
+                    try:
+                        res = chat_ai(full_msg, st.session_state.api_key)
+                        reply = res.get("response", "Je suis là !")
+                        st.session_state.chat_history.append(
+                            {"role": "ai", "content": reply, "ts": _ts()})
+                            
+                        # Comme pour l'enrichissement : on garde l'ancien val si c'est pas un scénario
+                        if res.get("type") == "scenario":
+                            st.session_state.val = res
+                            if res.get("theme") in THEMES:
+                                st.session_state.theme = res["theme"]
                         st.rerun()
+                    except Exception as e:
+                        st.session_state.chat_history.pop()
+                        st.error(f"Erreur API Groq : {e}")
 
         # ══════════════════════════════════════════════════
         # ZONE DE DÉCISION — Toujours visible sous le chat
@@ -1306,6 +1291,42 @@ def main():
                 "</div>",
                 unsafe_allow_html=True
             )
+
+            # ── Enrichissements ──
+            _sugg = _v.get("suggestions", [])
+            if _sugg:
+                st.markdown(
+                    "<div style='font-size:0.78rem;font-weight:600;color:#64748b;"
+                    "margin:10px 0 5px;'>✨ Enrichir la situation :</div>",
+                    unsafe_allow_html=True
+                )
+                _sugg_to_show = _sugg[:3]
+                _sc = st.columns(len(_sugg_to_show))
+                for _sid, _s in enumerate(_sugg_to_show):
+                    with _sc[_sid]:
+                        if st.button(f"+ {_s}", key=f"enrich_{_sid}",
+                                     use_container_width=True):
+                            _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
+                            st.session_state.betise = _nm
+                            st.session_state.chat_history.append(
+                                {"role": "user", "content": _nm, "ts": _ts()})
+                            with st.spinner("🤖 Mise à jour du scénario…"):
+                                try:
+                                    _r2 = chat_ai(_nm, st.session_state.api_key)
+                                    reply2 = _r2.get("response","")
+                                    st.session_state.chat_history.append(
+                                        {"role":"ai","content":reply2,"ts":_ts()})
+                                    # Si l'IA re-détecte un scénario → mettre à jour
+                                    # Sinon → GARDER l'ancien val (ne pas réinitialiser)
+                                    if _r2.get("type") == "scenario":
+                                        st.session_state.val = _r2
+                                        if _r2.get("theme") in THEMES:
+                                            st.session_state.theme = _r2["theme"]
+                                    # else: val inchangé → bouton génération reste actif
+                                except Exception as _e:
+                                    st.error(f"Erreur : {_e}")
+                            st.rerun()
+
             # ── Boutons Actions ──
             st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
             _bg1, _bg2 = st.columns([3, 1])
@@ -1559,3 +1580,4 @@ def main():
 
 if __name__=="__main__":
     main()
+    

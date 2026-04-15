@@ -318,11 +318,11 @@ def parse_scenario(d: dict) -> tuple:
     age = d.get("age") or 5
     genre = d.get("genre") or "garçon"
     char = Character(prenom=str(prenom), age=int(age), genre=str(genre))
-    s = d["song"]
-    song = SongData(titre=s.get("titre",""), intro=s.get("intro",""), acte1=s.get("acte1",""),
-        acte2=s.get("acte2",""), refrain1=s.get("refrain1",""), acte3=s.get("acte3",""),
-        acte4=s.get("acte4",""), refrain2=s.get("refrain2",""), acte5=s.get("acte5",""),
-        acte6=s.get("acte6",""), outro=s.get("outro",""))
+    s = d.get("song", {})
+    song = SongData(titre=s.get("titre",f"Chanson de {char.prenom}"), intro=s.get("intro","..."), acte1=s.get("acte1","..."),
+        acte2=s.get("acte2","..."), refrain1=s.get("refrain1","..."), acte3=s.get("acte3","..."),
+        acte4=s.get("acte4","..."), refrain2=s.get("refrain2","..."), acte5=s.get("acte5","..."),
+        acte6=s.get("acte6","..."), outro=s.get("outro","..."))
     # Récupère les 15 narrations générées par l'IA
     raw_narr = d.get("scenes_narration", [])
     # Nettoie les narrations (retire le préfixe "Scène X : " si présent)

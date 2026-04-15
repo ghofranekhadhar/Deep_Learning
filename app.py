@@ -1186,6 +1186,7 @@ def main():
                                             st.session_state.val = None
                                             st.session_state.betise = new_txt
                                             with st.spinner("🤖 Analyse en cours…"):
+                                                import time; time.sleep(1)
                                                 try:
                                                     res = chat_ai(new_txt, st.session_state.api_key, st.session_state.val)
                                                     reply = res.get("response", "Bien reçu !")
@@ -1251,6 +1252,7 @@ def main():
                                         st.session_state.betise = _nm
                                         
                                         with st.spinner("🤖 Mise à jour du scénario…"):
+                                            import time; time.sleep(1)
                                             try:
                                                 _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
                                                 reply2 = _r2.get("response","")
@@ -1339,6 +1341,7 @@ def main():
                 st.session_state.chat_history.append(
                     {"role": "user", "content": _msg, "ts": _ts()})
                 with st.spinner("🤖 Je comprends la situation…"):
+                    import time; time.sleep(1)
                     try:
                         res = chat_ai(full_msg, st.session_state.api_key, st.session_state.val)
                         reply = res.get("response", "Je suis là !")
@@ -1403,6 +1406,7 @@ def main():
             with _bg2:
                 if st.button("🔄 Réinterpréter", use_container_width=True, key="btn_reinterp"):
                     with st.spinner("🤖 Nouvelle réflexion…"):
+                        import time; time.sleep(1)
                         try:
                             _r3 = chat_ai(st.session_state.betise, st.session_state.api_key, st.session_state.val)
                             reply3 = _r3.get("response", "")

@@ -986,8 +986,8 @@ p,div,span,label{font-family:'Inter',sans-serif!important;}
 /* Buttons */
 .stButton>button{border-radius:10px!important;font-weight:600!important;
     font-size:.86rem!important;transition:all .2s!important;
-    background:#f1f5f9!important;border:1px solid #e2e8f0!important;color:#334155!important;}
-.stButton>button:hover{background:#e2e8f0!important;border-color:#cbd5e1!important;}
+    background:#e2e8f0!important;border:1px solid #cbd5e1!important;color:#334155!important;}
+.stButton>button:hover{background:#cbd5e1!important;border-color:#e2e8f0!important;}
 .stButton>button[kind="primary"]{
     background:linear-gradient(135deg,#6366f1,#8b5cf6)!important;
     color:#fff!important;border:none!important;

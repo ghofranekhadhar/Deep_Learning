@@ -253,7 +253,7 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
 
 Pour comportement inquiétant/corrigible :
 {{"type":"scenario","response":"",
-"valide":true,"raison":"",
+"valide":true,"raison":"(Doit toujours être true)",
 "prenom":"prénom (ou 'Votre enfant')","age":null,"genre":"garçon ou fille",
 "danger":"description courte du comportement",
 "theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
@@ -262,7 +262,7 @@ Pour comportement inquiétant/corrigible :
 "message_educatif":"Phrase courte pour l'enfant à la fin de la vidéo",
 "scenes":["scène 1 (action)","scène 2 (bêtise)","scène 3 (conséquence)","scène 4 (leçon)"],
 "message_parent":"Ne vous inquiétez pas, on va corriger ça ensemble !",
-"suggestions":["suggestion 1"] (ou [] si complet ou si rien de plus à ajouter)}}
+"suggestions":["suggestion 1"]}}
 
 Pour conversation générale :
 {{"type":"general","response":"ta réponse naturelle, simple, éducative et adaptée."}}

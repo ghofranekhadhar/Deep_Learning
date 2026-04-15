@@ -1390,16 +1390,18 @@ def main():
             "</div>",
             unsafe_allow_html=True
         )
+        def set_example(txt, thm):
+            st.session_state[_input_key] = txt
+            st.session_state.theme = thm
+
         ex_cols = st.columns(len(EXAMPLES))
         for idx, ex in enumerate(EXAMPLES):
             with ex_cols[idx]:
-                if st.button(
+                st.button(
                     f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
-                    use_container_width=True, help=ex["text"]
-                ):
-                    st.session_state[_input_key] = ex["text"]
-                    st.session_state.theme  = ex["theme"]
-                    st.rerun()
+                    use_container_width=True, help=ex["text"],
+                    on_click=set_example, args=(ex["text"], ex["theme"])
+                )
 
 
 

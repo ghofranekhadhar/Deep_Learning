@@ -1264,23 +1264,28 @@ def main():
                                                 st.error(f"Erreur : {_e}")
                                         st.rerun()
 
-                # Auto-scroll
+                # Auto-scroll garanti à chaque interaction
+                import time
                 _cmp.html(f"""<script>
                 function forceScroll() {{
                     try {{
                         var ws = window.parent.document.querySelectorAll(
-                            '[data-testid="stVerticalBlockBorderWrapper"]');
+                            '[data-testid="stVerticalBlockBorderWrapper"], [data-testid="stVerticalBlock"]');
                         if (ws.length > 0) {{
                             for(var i=0; i<ws.length; i++) {{
-                                ws[i].scrollTop = ws[i].scrollHeight;
+                                if(ws[i].scrollHeight > ws[i].clientHeight) {{
+                                    ws[i].scrollTop = ws[i].scrollHeight;
+                                }}
                             }}
                         }}
                     }} catch(e) {{}}
                 }}
                 forceScroll();
                 setTimeout(forceScroll, 100);
-                setTimeout(forceScroll, 500);
-                </script><div style='display:none;'>{len(st.session_state.chat_history)}</div>""", height=0)
+                setTimeout(forceScroll, 400);
+                setTimeout(forceScroll, 800);
+                setTimeout(forceScroll, 1200);
+                </script><div style='display:none;'>{time.time()}</div>""", height=0)
 
             # — Champ de saisie (Enter = envoyer) —
             st.markdown('<div class="chat-input-wrap">', unsafe_allow_html=True)

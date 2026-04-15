@@ -1220,13 +1220,22 @@ def main():
                                     st.rerun()
 
                 # Auto-scroll
-                _cmp.html("""<script>
-                try {
-                    var ws = window.parent.document.querySelectorAll(
-                        '[data-testid="stVerticalBlockBorderWrapper"]');
-                    if (ws.length > 0) ws[ws.length-1].scrollTop = ws[ws.length-1].scrollHeight;
-                } catch(e) {}
-                </script>""", height=0)
+                _cmp.html(f"""<script>
+                function forceScroll() {{
+                    try {{
+                        var ws = window.parent.document.querySelectorAll(
+                            '[data-testid="stVerticalBlockBorderWrapper"]');
+                        if (ws.length > 0) {{
+                            for(var i=0; i<ws.length; i++) {{
+                                ws[i].scrollTop = ws[i].scrollHeight;
+                            }}
+                        }}
+                    }} catch(e) {{}}
+                }}
+                forceScroll();
+                setTimeout(forceScroll, 100);
+                setTimeout(forceScroll, 500);
+                </script><div style='display:none;'>{len(st.session_state.chat_history)}</div>""", height=0)
 
             # — Champ de saisie (Enter = envoyer) —
             st.markdown('<div class="chat-input-wrap">', unsafe_allow_html=True)

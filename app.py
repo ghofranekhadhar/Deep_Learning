@@ -1241,23 +1241,23 @@ def main():
                                 with _cc[_sid]:
                                     if st.button(f"✨ {_s}", key=f"enrich_{_sid}",
                                                  use_container_width=True):
-                                    _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
-                                    st.session_state.betise = _nm
-                                    st.session_state.chat_history.append(
-                                        {"role": "user", "content": _nm, "ts": _ts()})
-                                    with st.spinner("🤖 Mise à jour du scénario…"):
-                                        try:
-                                            _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
-                                            reply2 = _r2.get("response","")
-                                            st.session_state.chat_history.append(
-                                                {"role":"ai","content":reply2,"ts":_ts()})
-                                            if _r2.get("type") == "scenario":
-                                                st.session_state.val = _r2
-                                                if _r2.get("theme") in THEMES:
-                                                    st.session_state.theme = _r2["theme"]
-                                        except Exception as _e:
-                                            st.error(f"Erreur : {_e}")
-                                    st.rerun()
+                                        _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
+                                        st.session_state.betise = _nm
+                                        st.session_state.chat_history.append(
+                                            {"role": "user", "content": _nm, "ts": _ts()})
+                                        with st.spinner("🤖 Mise à jour du scénario…"):
+                                            try:
+                                                _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
+                                                reply2 = _r2.get("response","")
+                                                st.session_state.chat_history.append(
+                                                    {"role":"ai","content":reply2,"ts":_ts()})
+                                                if _r2.get("type") == "scenario":
+                                                    st.session_state.val = _r2
+                                                    if _r2.get("theme") in THEMES:
+                                                        st.session_state.theme = _r2["theme"]
+                                            except Exception as _e:
+                                                st.error(f"Erreur : {_e}")
+                                        st.rerun()
 
                 # Auto-scroll
                 _cmp.html(f"""<script>

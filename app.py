@@ -256,10 +256,10 @@ Pour comportement inquiétant/corrigible :
 "valide":true,"raison":"(Doit toujours être true)",
 "prenom":"prénom (ou 'Votre enfant')","age":null,"genre":"garçon ou fille",
 "danger":"description courte du comportement",
-"theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
+"theme":"general", // CHOISIS UN SEUL MOT EXACT PARMI : electric, kitchen, meds, pool, road, fire, behaviour, general
 "comprehension":"Il fait [comportement].",
 "conseils":["conseil 1","conseil 2","conseil 3"],
-"message_educatif":"Phrase courte pour l'enfant à la fin de la vidéo",
+"message_educatif":"Phrase courte pour l'enfant (SANS AUCUN GUILLEMET POUR NE PAS CASSER LE JSON)",
 "scenes":["scène 1 (action)","scène 2 (bêtise)","scène 3 (conséquence)","scène 4 (leçon)"],
 "message_parent":"Ne vous inquiétez pas, on va corriger ça ensemble !",
 "suggestions":["suggestion 1"]}}

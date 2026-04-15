@@ -246,8 +246,8 @@ Exemple : "... [CORRECTION DU PARENT] : Salma 8 ans" -> Renvoyer prénom "Salma"
 Exemple : "... [CORRECTION DU PARENT] : c'est un garçon" -> Renvoyer genre "garçon".
 
 SUGGESTIONS D'ENRICHISSEMENT (Mode Scénario) : 
-Génère 3 suggestions COURTES et DIRECTEMENT utilisables par le parent pour ajouter du contexte.
-Exemples : "dès que j'ai le dos tourné", "il refuse de m'écouter", "ça arrive tous les jours"
+Si le scénario manque de détails contextuels, génère 1 à 3 suggestions COURTES (ex: "dès que j'ai le dos tourné").
+IMPORTANT : Si l'histoire du parent est DÉJÀ très complète, ou si rajouter des détails serait répétitif et inutile, renvoie strictement une liste VIDE []. Ne génère jamais de suggestions artificielles juste pour remplir.
 
 Réponds UNIQUEMENT en JSON valide sans markdown :
 
@@ -262,7 +262,7 @@ Pour comportement inquiétant/corrigible :
 "message_educatif":"Phrase courte pour l'enfant à la fin de la vidéo",
 "scenes":["scène 1 (action)","scène 2 (bêtise)","scène 3 (conséquence)","scène 4 (leçon)"],
 "message_parent":"Ne vous inquiétez pas, on va corriger ça ensemble !",
-"suggestions":["suggestion 1","suggestion 2","suggestion 3"]}}
+"suggestions":["suggestion 1"] (ou [] si complet ou si rien de plus à ajouter)}}
 
 Pour conversation générale :
 {{"type":"general","response":"ta réponse naturelle, simple, éducative et adaptée."}}

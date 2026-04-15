@@ -246,13 +246,15 @@ Exemples : "dès que j'ai le dos tourné", "il refuse de m'écouter", "ça arriv
 Réponds UNIQUEMENT en JSON valide sans markdown :
 
 Pour comportement inquiétant/corrigible :
-{{"type":"scenario","response":"Bien compris ! Je vous prépare un scénario éducatif pour cette situation.",
+{{"type":"scenario","response":"",
 "valide":true,"raison":"",
 "prenom":"prénom ou l enfant","age":6,"genre":"garçon ou fille",
 "danger":"description courte du comportement",
 "theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
 "comprehension":"Il fait [comportement].",
 "conseils":["conseil 1","conseil 2","conseil 3"],
+"message_educatif":"Phrase courte pour l'enfant à la fin de la vidéo",
+"scenes":["scène 1 (action)","scène 2 (bêtise)","scène 3 (conséquence)","scène 4 (leçon)"],
 "message_parent":"Ne vous inquiétez pas, on va corriger ça ensemble !",
 "suggestions":["suggestion 1","suggestion 2","suggestion 3"]}}
 
@@ -269,7 +271,23 @@ Message du parent : {message}
 def chat_ai(message: str, api_key: str) -> dict:
     """Analyse le message et retourne type general/scenario/invalid + réponse."""
     prompt = CHAT_PROMPT.replace("{message}", message)
-    return _call(api_key, prompt, 1200)
+    res = _call(api_key, prompt, 1500)
+    if res.get("type") == "scenario":
+        pre = res.get("prenom", "l'enfant")
+        age = res.get("age", 6)
+        danger = res.get("danger", "ce comportement")
+        msg_edu = res.get("message_educatif", "On va apprendre à corriger cela.")
+        scenes = res.get("scenes", ["[Scène 1]", "[Scène 2]", "[Scène 3]", "[Scène 4]"])
+        scenes_str = "\n".join(f"- {s}" for s in scenes)
+        res["response"] = (
+            f"✅ J'ai bien compris la situation !\n\n"
+            f"Voici ce que je vais mettre dans la vidéo :\n\n"
+            f"👤 ENFANT : {pre}, {age} ans\n"
+            f"⚠️ DANGER : {danger}\n"
+            f"📖 MESSAGE ÉDUCATIF : \"{msg_edu}\"\n\n"
+            f"🎨 IMAGES DANS LA VIDÉO :\n{scenes_str}"
+        )
+    return res
 
 def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     theme_val = val.get("theme") or "general"

@@ -1415,11 +1415,11 @@ def main():
 
         # ══════════════════════════════════════════════════
         # SUGGESTIONS RAPIDES (déclenchent l'analyse auto)
-        # ══════════════════════════════════════════════════
+        # ─────────────────────────────────────────
         st.markdown(
-            "<div style='margin-top:16px;'>"
-            "<span style='font-size:0.7rem;font-weight:700;color:#94a3b8;"
-            "text-transform:uppercase;letter-spacing:0.06em;'>💡 Exemples rapides</span>"
+            "<div style='margin-top:16px;margin-bottom:8px;'>"
+            "<span style='font-size:0.75rem;font-weight:700;color:#64748b;"
+            "text-transform:uppercase;letter-spacing:0.06em;'>💡 Exemples rapides pour commencer</span>"
             "</div>",
             unsafe_allow_html=True
         )
@@ -1427,14 +1427,18 @@ def main():
             st.session_state[_input_key] = txt
             st.session_state.theme = thm
 
-        ex_cols = st.columns(len(EXAMPLES))
-        for idx, ex in enumerate(EXAMPLES):
-            with ex_cols[idx]:
-                st.button(
-                    f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
-                    use_container_width=True, help=ex["text"],
-                    on_click=set_example, args=(ex["text"], ex["theme"])
-                )
+        for i in range(0, len(EXAMPLES), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                idx = i + j
+                if idx < len(EXAMPLES):
+                    ex = EXAMPLES[idx]
+                    with cols[j]:
+                        st.button(
+                            f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
+                            use_container_width=True, help=ex["text"],
+                            on_click=set_example, args=(ex["text"], ex["theme"])
+                        )
 
 
 

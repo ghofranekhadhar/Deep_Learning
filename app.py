@@ -1269,20 +1269,19 @@ def main():
                 if st.session_state.get("stream_next"):
                     ph = st.empty()
                     txt = st.session_state.stream_next
-                    disp = ""
                     import time
-                    for i in range(len(txt)):
-                        disp += txt[i]
-                        if i % 3 == 0 or i == len(txt) - 1:
-                            txt_fmt = _html.escape(disp).replace("\n", "<br>") + "▌"
-                            ph.markdown(ds_ai_bubble(txt_fmt, _ts()), unsafe_allow_html=True)
-                            time.sleep(0.015)
+                    chunk_size = max(1, len(txt) // 40)
+                    for i in range(0, len(txt), chunk_size):
+                        disp = txt[:i+chunk_size]
+                        txt_fmt = _html.escape(disp).replace("\n", "<br>") + "▌"
+                        ph.markdown(ds_ai_bubble(txt_fmt, _ts()), unsafe_allow_html=True)
+                        time.sleep(0.04)
                     ph.empty()
                     st.session_state.chat_history.append({"role": "ai", "content": txt, "ts": _ts()})
                     st.session_state.stream_next = None
                     st.rerun()
 
-                # Auto-scroll garanti à chaque interaction
+                # Auto-scroll en temps réel (suivi du texte au pixel près)
                 import time
                 _cmp.html(f"""<script>
                 function forceScroll() {{
@@ -1297,12 +1296,11 @@ def main():
                             }}
                         }}
                     }} catch(e) {{}}
+                    window.parent.chatAutoScrollTimer = setTimeout(forceScroll, 50);
                 }}
+                if (window.parent.chatAutoScrollTimer) clearTimeout(window.parent.chatAutoScrollTimer);
                 forceScroll();
-                setTimeout(forceScroll, 100);
-                setTimeout(forceScroll, 400);
-                setTimeout(forceScroll, 800);
-                setTimeout(forceScroll, 1200);
+                setTimeout(() => clearTimeout(window.parent.chatAutoScrollTimer), 8000);
                 </script><div style='display:none;'>{time.time()}</div>""", height=0)
 
             # — Champ de saisie (Enter = envoyer) —

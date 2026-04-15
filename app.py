@@ -1046,7 +1046,8 @@ def main():
               "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
               "theme":"general","show_key":False,"analyzing":False,
               "confirmed_yes":False,"confirmed_no":False,
-              "chat_history":[],"editing_index":None,"editing_content":""}
+              "chat_history":[],"editing_index":None,"editing_content":"",
+              "stream_next":None}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
@@ -1185,12 +1186,10 @@ def main():
                                             st.session_state.val = None
                                             st.session_state.betise = new_txt
                                             with st.spinner("🤖 Analyse en cours…"):
-                                                import time; time.sleep(3)
                                                 try:
                                                     res = chat_ai(new_txt, st.session_state.api_key, st.session_state.val)
                                                     reply = res.get("response", "Bien reçu !")
-                                                    st.session_state.chat_history.append(
-                                                        {"role":"ai","content":reply,"ts":_ts()})
+                                                    st.session_state.stream_next = reply
                                                     st.session_state.val = res if res.get("type")=="scenario" else None
                                                     if res.get("theme") in THEMES:
                                                         st.session_state.theme = res["theme"]
@@ -1252,12 +1251,10 @@ def main():
                                         st.session_state.betise = _nm
                                         
                                         with st.spinner("🤖 Mise à jour du scénario…"):
-                                            import time; time.sleep(3)
                                             try:
                                                 _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
                                                 reply2 = _r2.get("response","")
-                                                st.session_state.chat_history.append(
-                                                    {"role":"ai","content":reply2,"ts":_ts()})
+                                                st.session_state.stream_next = reply2
                                                 if _r2.get("type") == "scenario":
                                                     st.session_state.val = _r2
                                                     if _r2.get("theme") in THEMES:
@@ -1265,6 +1262,23 @@ def main():
                                             except Exception as _e:
                                                 st.error(f"Erreur : {_e}")
                                         st.rerun()
+
+                # -- Effet machine à écrire pour la réponse en attente --
+                if st.session_state.get("stream_next"):
+                    ph = st.empty()
+                    txt = st.session_state.stream_next
+                    disp = ""
+                    import time
+                    for i in range(len(txt)):
+                        disp += txt[i]
+                        if i % 3 == 0 or i == len(txt) - 1:
+                            txt_fmt = _html.escape(disp).replace("\n", "<br>") + "▌"
+                            ph.markdown(ds_ai_bubble(txt_fmt, _ts()), unsafe_allow_html=True)
+                            time.sleep(0.015)
+                    ph.empty()
+                    st.session_state.chat_history.append({"role": "ai", "content": txt, "ts": _ts()})
+                    st.session_state.stream_next = None
+                    st.rerun()
 
                 # Auto-scroll garanti à chaque interaction
                 import time
@@ -1325,12 +1339,10 @@ def main():
                 st.session_state.chat_history.append(
                     {"role": "user", "content": _msg, "ts": _ts()})
                 with st.spinner("🤖 Je comprends la situation…"):
-                    import time; time.sleep(3)
                     try:
                         res = chat_ai(full_msg, st.session_state.api_key, st.session_state.val)
                         reply = res.get("response", "Je suis là !")
-                        st.session_state.chat_history.append(
-                            {"role": "ai", "content": reply, "ts": _ts()})
+                        st.session_state.stream_next = reply
                             
                         # Comme pour l'enrichissement : on garde l'ancien val si c'est pas un scénario
                         if res.get("type") == "scenario":
@@ -1391,13 +1403,10 @@ def main():
             with _bg2:
                 if st.button("🔄 Réinterpréter", use_container_width=True, key="btn_reinterp"):
                     with st.spinner("🤖 Nouvelle réflexion…"):
-                        import time; time.sleep(3)
                         try:
                             _r3 = chat_ai(st.session_state.betise, st.session_state.api_key, st.session_state.val)
                             reply3 = _r3.get("response", "")
-                            st.session_state.chat_history.append(
-                                {"role":"ai", "content":reply3, "ts":_ts()}
-                            )
+                            st.session_state.stream_next = reply3
                             st.session_state.val = _r3 if _r3.get("type")=="scenario" else None
                             if _r3.get("theme") in THEMES:
                                 st.session_state.theme = _r3["theme"]

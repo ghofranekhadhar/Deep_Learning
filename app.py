@@ -1397,21 +1397,8 @@ def main():
                     f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
                     use_container_width=True, help=ex["text"]
                 ):
-                    st.session_state.betise = ex["text"]
+                    st.session_state[_input_key] = ex["text"]
                     st.session_state.theme  = ex["theme"]
-                    # Analyse automatique du texte rapide
-                    st.session_state.chat_history.append(
-                        {"role": "user", "content": ex["text"], "ts": _ts()})
-                    with st.spinner("🤖 Analyse…"):
-                        try:
-                            _rex = chat_ai(ex["text"], st.session_state.api_key)
-                            st.session_state.chat_history.append(
-                                {"role":"ai","content":_rex.get("response",""),"ts":_ts()})
-                            st.session_state.val = _rex if _rex.get("type")=="scenario" else None
-                            if _rex.get("theme") in THEMES:
-                                st.session_state.theme = _rex["theme"]
-                        except Exception as _e:
-                            st.error(f"Erreur : {_e}")
                     st.rerun()
 
 

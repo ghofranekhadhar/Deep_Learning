@@ -850,7 +850,37 @@ p,div,span,label{font-family:'Inter',sans-serif!important;}
     color: #ffffff !important; font-family: 'Inter', sans-serif !important;
 }
 
-/* Heure */
+/* — Cadre principal du chat — */
+/* Cible le container border=True de Streamlit */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+/* Cadre interne (sans border) pour le scroll : retire le style par défaut */
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlockBorderWrapper"] {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+}
+/* Ajustement du padding interne du chat frame */
+.chat-frame-inner {
+    padding: 14px 16px 10px;
+}
+/* Séparateur entre la section messages et l'input */
+.chat-input-sep {
+    border: none; border-top: 1.5px solid #f1f5f9;
+    margin: 6px 0 0;
+}
+/* Conteneur de l'input en bas du cadre */
+.chat-input-wrap {
+    background: #f8fafc;
+    padding: 10px 14px 12px;
+    border-top: 1px solid #eff0f3;
+}
 .ds-time {
     font-size: 0.62rem; opacity: 0.45; margin-top: 3px;
     display: block; color: #94a3b8 !important;
@@ -1039,7 +1069,7 @@ def main():
                 '</div></div>'
             )
 
-        # ─ EN-TÊTE (fixe, ne défile pas) ─
+        # ─ EN-TÊTE (hors cadre) ─
         st.markdown(
             '<div class="chat-section-header">'
             '<div class="csh-icon">🎓</div>'
@@ -1050,218 +1080,137 @@ def main():
             unsafe_allow_html=True
         )
 
-        # ─ MESSAGE DE BIENVENUE (fixe, ne défile pas) ─
-        greeting = (
-            "<b>Bonjour ! 👋 Je suis votre Assistant Pédagogique.</b><br>"
-            "<span style='font-size:0.88rem;'>"
-            "Parlez-moi librement — si vous décrivez un comportement dangereux de votre enfant,"
-            " je génère automatiquement un scénario éducatif animé personnalisé. ✨"
-            "</span>"
-        )
-        st.markdown(ds_ai_bubble(greeting), unsafe_allow_html=True)
-
-        # ─ ZONE DE DISCUSSION SCROLLABLE (avec cadre visible) ─
+        # ══════════════════════════════════════
+        # CADRE PRINCIPAL DU CHAT
+        # (greeting + messages + input dans un seul cadre)
+        # ══════════════════════════════════════
         _ei = st.session_state.get("editing_index", None)
-        _n_msgs = len(st.session_state.chat_history)
+        _input_key = f"chat_input_{len(st.session_state.chat_history)}"
+        send_clicked = False
 
-        # border=True = cadre visible autour de la zone de chat
-        chat_area = st.container(height=420, border=True)
+        with st.container(border=True):
 
-        with chat_area:
-            for i, msg in enumerate(st.session_state.chat_history):
-                txt = _html.escape(msg["content"]).replace("\n", "<br>")
-                ts  = msg.get("ts", "")
-
-                if msg["role"] == "ai":
-                    st.markdown(ds_ai_bubble(txt, ts), unsafe_allow_html=True)
-
-                else:  # message parent
-                    if _ei == i:
-                        # — MODE ÉDITION INLINE —
-                        _, _ez = st.columns([1, 5])
-                        with _ez:
-                            edited = st.text_area(
-                                "Modifier", value=st.session_state.editing_content,
-                                height=80, label_visibility="collapsed",
-                                key=f"inline_edit_{i}"
-                            )
-                            st.session_state.editing_content = edited
-                            _ca, _cc = st.columns([1, 1])
-                            with _cc:
-                                if st.button("✓ Confirmer", key=f"confirm_{i}",
-                                             type="primary", use_container_width=True):
-                                    new_txt = st.session_state.editing_content.strip()
-                                    if new_txt:
-                                        st.session_state.chat_history[i]["content"] = new_txt
-                                        st.session_state.chat_history = \
-                                            st.session_state.chat_history[:i+1]
-                                        st.session_state.editing_index = None
-                                        st.session_state.editing_content = ""
-                                        st.session_state.val = None
-                                        with st.spinner("🤖 Analyse…"):
-                                            try:
-                                                res = chat_ai(new_txt, st.session_state.api_key)
-                                                reply = res.get("response", "Bien reçu !")
-                                                st.session_state.chat_history.append(
-                                                    {"role":"ai","content":reply,"ts":_ts()})
-                                                st.session_state.val = res if res.get("type")=="scenario" else None
-                                                if res.get("theme") in THEMES:
-                                                    st.session_state.theme = res["theme"]
-                                            except Exception as e:
-                                                st.error(f"Erreur : {e}")
-                                        st.rerun()
-                            with _ca:
-                                if st.button("✕ Annuler", key=f"cancel_{i}",
-                                             use_container_width=True):
-                                    st.session_state.editing_index = None
-                                    st.session_state.editing_content = ""
-                                    st.rerun()
-                    else:
-                        # — Bulle parent à droite —
-                        _, _bc = st.columns([2, 5])
-                        with _bc:
-                            bubble_html = (
-                                f'<div class="ds-user-wrap">'
-                                f'<div class="ds-bubble-user">{txt}</div>'
-                                + (f'<span class="ds-time">{ts}</span>' if ts else '') +
-                                '</div>'
-                            )
-                            st.markdown(bubble_html, unsafe_allow_html=True)
-                        # — Lien "Modifier" discret sous la bulle, aligné à droite —
-                        _, _mc = st.columns([4, 3])
-                        with _mc:
-                            if st.button(
-                                "\u270f\ufe0f modifier",
-                                key=f"mod_{i}",
-                                help="Modifier ce message"
-                            ):
-                                st.session_state.editing_index = i
-                                st.session_state.editing_content = msg["content"]
-                                st.rerun()
-
-            # Auto-scroll vers le bas à chaque nouveau message
-            _cmp.html(
-                """<script>
-                try {
-                  var scrollDivs = window.parent.document.querySelectorAll(
-                    '[data-testid="stVerticalBlockBorderWrapper"]');
-                  if (scrollDivs.length > 0) {
-                    var last = scrollDivs[scrollDivs.length - 1];
-                    last.scrollTop = last.scrollHeight;
-                  }
-                } catch(e) {}
-                </script>""",
-                height=0
-            )
-
-        # ─ Séparateur avant la zone de saisie ─
-        st.markdown(
-            "<div style='border-top:1px solid #f1f5f9;margin-top:8px;'></div>",
-            unsafe_allow_html=True
-        )
-
-        # ──────────────────────────────────────
-        # BOUTONS D'ACTION scénario (si actif)
-        # ──────────────────────────────────────
-        last_val = st.session_state.val
-        if last_val and last_val.get("type") == "scenario" and last_val.get("valide"):
-            v = last_val
-            sugg = v.get("suggestions", [])
-
+            # ─ 1. MESSAGE DE BIENVENUE (haut du cadre) ─
             st.markdown(
-                "<div style='background:linear-gradient(135deg,#f0fdf4,#dcfce7);"
-                "border:1px solid #86efac;border-radius:12px;padding:12px 16px;"
-                "margin-top:12px;font-size:0.88rem;color:#166534;'>"
-                f"<b>🎬 Scénario prêt :</b> {v.get('prenom','?')} · {v.get('age','')} ans · ⚠️ {v.get('danger','')}"
-                "</div>",
+                '<div class="chat-frame-inner">'
+                + ds_ai_bubble(
+                    "<b>Bonjour ! 👋 Je suis votre Assistant Pédagogique.</b><br>"
+                    "<span style='font-size:0.87rem;'>"
+                    "Parlez-moi librement — si vous décrivez un comportement dangereux "
+                    "de votre enfant, je génère automatiquement un scénario éducatif "
+                    "animé personnalisé. ✨</span>"
+                )
+                + '</div>',
                 unsafe_allow_html=True
             )
 
-            st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
+            # ─ 2. ZONE SCROLLABLE DES MESSAGES ─
+            chat_area = st.container(height=330, border=False)
+            with chat_area:
+                for i, msg in enumerate(st.session_state.chat_history):
+                    txt = _html.escape(msg["content"]).replace("\n", "<br>")
+                    ts  = msg.get("ts", "")
 
-            if sugg:
-                for sid, s in enumerate(sugg[:2]):
-                    if st.button(f"➕ Enrichir : {s}", key=f"add_sugg_{sid}",
-                                 use_container_width=True):
-                        new_msg = st.session_state.betise.strip()
-                        if new_msg and not new_msg[-1] in ".,!?": new_msg += ","
-                        new_msg = (new_msg + " " + s).strip()
-                        st.session_state.betise = new_msg
-                        _now = _ts()
-                        st.session_state.chat_history.append(
-                            {"role":"user","content":new_msg,"ts":_now})
-                        with st.spinner("🤖 Mise à jour…"):
-                            try:
-                                res = chat_ai(new_msg, st.session_state.api_key)
-                                reply = res.get("response", "")
-                                st.session_state.chat_history.append(
-                                    {"role":"ai","content":reply,"ts":_ts()})
-                                st.session_state.val = res
-                                if res.get("theme") in THEMES:
-                                    st.session_state.theme = res["theme"]
-                            except Exception as e:
-                                st.error(f"Erreur : {e}")
-                        st.rerun()
+                    if msg["role"] == "ai":
+                        st.markdown(ds_ai_bubble(txt, ts), unsafe_allow_html=True)
 
-            c_gen, c_new = st.columns([3, 1])
-            with c_gen:
-                if st.button("🎬 Générer le dessin animé éducatif !",
-                             type="primary", use_container_width=True):
-                    with st.spinner("🎵 Génération du scénario…"):
-                        try:
-                            betise_src = st.session_state.betise
-                            data = scenario_ai(betise_src, v, st.session_state.api_key)
-                            st.session_state.scenario = data
-                            char, song, narrations, img_prompts = parse_scenario(data)
-                            st.session_state.char = char
-                            st.session_state.song = song
-                            st.session_state.narrations = narrations
-                            st.session_state.img_prompts = img_prompts
-                            st.session_state.step = 2
-                            st.rerun()
-                        except json.JSONDecodeError:
-                            st.error("Format JSON invalide.")
-                        except Exception as e:
-                            st.error(f"Erreur : {e}")
-            with c_new:
-                if st.button("🔄 Réinterpréter", use_container_width=True):
-                    with st.spinner("🤖 Nouvelle interprétation…"):
-                        try:
-                            res = chat_ai(st.session_state.betise,
-                                          st.session_state.api_key)
-                            reply = res.get("response", "")
-                            # Met à jour le dernier msg IA dans l'historique
-                            if st.session_state.chat_history and \
-                               st.session_state.chat_history[-1]["role"] == "ai":
-                                st.session_state.chat_history[-1]["content"] = reply
-                            else:
-                                st.session_state.chat_history.append(
-                                    {"role":"ai","content":reply,"ts":_ts()})
-                            st.session_state.val = res
-                            if res.get("theme") in THEMES:
-                                st.session_state.theme = res["theme"]
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erreur : {e}")
+                    else:  # message parent
+                        if _ei == i:
+                            # — Mode édition inline —
+                            _, _ez = st.columns([1, 5])
+                            with _ez:
+                                edited = st.text_area(
+                                    "Modifier", value=st.session_state.editing_content,
+                                    height=80, label_visibility="collapsed",
+                                    key=f"inline_edit_{i}"
+                                )
+                                st.session_state.editing_content = edited
+                                _ca, _cc = st.columns([1, 1])
+                                with _cc:
+                                    if st.button("✓ Confirmer", key=f"confirm_{i}",
+                                                 type="primary", use_container_width=True):
+                                        new_txt = st.session_state.editing_content.strip()
+                                        if new_txt:
+                                            st.session_state.chat_history[i]["content"] = new_txt
+                                            st.session_state.chat_history = \
+                                                st.session_state.chat_history[:i+1]
+                                            st.session_state.editing_index = None
+                                            st.session_state.editing_content = ""
+                                            st.session_state.val = None
+                                            with st.spinner("🤖 Analyse…"):
+                                                try:
+                                                    res = chat_ai(new_txt, st.session_state.api_key)
+                                                    reply = res.get("response", "Bien reçu !")
+                                                    st.session_state.chat_history.append(
+                                                        {"role":"ai","content":reply,"ts":_ts()})
+                                                    st.session_state.val = res if res.get("type")=="scenario" else None
+                                                    if res.get("theme") in THEMES:
+                                                        st.session_state.theme = res["theme"]
+                                                except Exception as e:
+                                                    st.error(f"Erreur : {e}")
+                                            st.rerun()
+                                with _ca:
+                                    if st.button("✕ Annuler", key=f"cancel_{i}",
+                                                 use_container_width=True):
+                                        st.session_state.editing_index = None
+                                        st.session_state.editing_content = ""
+                                        st.rerun()
+                        else:
+                            # — Bulle parent à droite —
+                            _, _bc = st.columns([2, 5])
+                            with _bc:
+                                st.markdown(
+                                    f'<div class="ds-user-wrap">'
+                                    f'<div class="ds-bubble-user">{txt}</div>'
+                                    + (f'<span class="ds-time">{ts}</span>' if ts else '') +
+                                    '</div>',
+                                    unsafe_allow_html=True
+                                )
+                            # Lien «Modifier» discret sous la bulle
+                            _, _mc = st.columns([4, 3])
+                            with _mc:
+                                if st.button("✏️ modifier", key=f"mod_{i}",
+                                             help="Modifier ce message"):
+                                    st.session_state.editing_index = i
+                                    st.session_state.editing_content = msg["content"]
+                                    st.rerun()
 
-        # ── ZONE DE SAISIE (champ + bouton ↑) ──
-        st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
+                # Auto-scroll vers le dernier message
+                _cmp.html(
+                    """<script>
+                    try {
+                        var ws = window.parent.document.querySelectorAll(
+                            '[data-testid="stVerticalBlockBorderWrapper"]');
+                        if (ws.length > 0) {
+                            ws[ws.length - 1].scrollTop = ws[ws.length - 1].scrollHeight;
+                        }
+                    } catch(e) {}
+                    </script>""",
+                    height=0
+                )
 
-        # Clé dynamique → change à chaque nouveau message → champ redevient vide
-        _input_key = f"chat_input_{len(st.session_state.chat_history)}"
-        _txt_col, _btn_col = st.columns([9, 1])
-        with _txt_col:
-            user_input = st.text_area(
-                "msg",
-                placeholder="Écrivez votre message…",
-                height=90, label_visibility="collapsed",
-                key=_input_key
+            # ─ 3. CHAMP DE SAISIE (en bas du cadre) ─
+            st.markdown(
+                '<div class="chat-input-wrap">',
+                unsafe_allow_html=True
             )
-        with _btn_col:
-            st.markdown("<div style='margin-top:44px;'></div>", unsafe_allow_html=True)
-            send_clicked = st.button("↑", type="primary",
-                                     use_container_width=True, key="btn_send_icon")
+            _tc, _bc2 = st.columns([11, 1])
+            with _tc:
+                st.text_area(
+                    "msg",
+                    placeholder="Écrivez votre message…",
+                    height=72, label_visibility="collapsed",
+                    key=_input_key
+                )
+            with _bc2:
+                st.markdown("<div style='margin-top:36px;'></div>",
+                            unsafe_allow_html=True)
+                send_clicked = st.button("↑", type="primary",
+                                         use_container_width=True,
+                                         key="btn_send_icon")
+            st.markdown('</div>', unsafe_allow_html=True)
 
+        # ─ Logique d'envoi (après le cadre) ─
         if send_clicked:
             msg_texte = st.session_state.get(_input_key, "").strip()
             if not st.session_state.api_key.strip():

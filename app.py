@@ -51,7 +51,7 @@ class Cfg:
 # ─────────────────────────────────────────
 @dataclass
 class Character:
-    prenom:str; age:int; genre:str
+    prenom:str; age:int; genre:str; hero:str="Par défaut"
 
 @dataclass
 class SongData:
@@ -137,7 +137,7 @@ Phrase : {betise}"""
 
 SCN_PROMPT="""Tu es auteur de livres éducatifs pour enfants 3-8 ans. Génère une chanson narrative rimée.
 Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
-{{"prenom":"{prenom}","age":{age},"genre":"{genre}","danger_court":"3 mots max",
+{{"prenom":"{prenom}","age":{age},"genre":"{genre}","hero":"{hero}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
   "Scène 1 Introduction : phrase courte qui décrit ce qui se passe (max 8 mots)",
@@ -173,7 +173,7 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
   "Describe scene 14 background in English based on story",
   "Describe scene 15 background in English based on story"
 ],
-"song":{{"titre":"La Chanson de {prenom} et [danger]",
+"song":{{"titre":"La Chanson de {prenom} et [danger] (style {hero})",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
 "acte2":"découverte objet dangereux 3-4 phrases rimées",
 "refrain1":"avertissement NON NON NON 3-4 phrases rimées",
@@ -255,6 +255,7 @@ Pour comportement inquiétant/corrigible :
 {{"type":"scenario","response":"",
 "valide":true,"raison":"(Doit toujours être true)",
 "prenom":"prénom (ou 'Votre enfant')","age":null,"genre":"garçon ou fille",
+"hero":"nom du héros (ex: Spiderman, Dora, ou 'Par défaut')",
 "danger":"description courte du comportement",
 "theme":"general", // CHOISIS UN SEUL MOT EXACT PARMI : electric, kitchen, meds, pool, road, fire, behaviour, general
 "comprehension":"Il fait [comportement].",
@@ -285,7 +286,10 @@ def chat_ai(message: str, api_key: str, current_state: dict = None) -> dict:
     if res.get("type") == "scenario":
         pre = res.get("prenom") or "Votre enfant"
         age = res.get("age")
-        enfant_info = f"{pre}, {age} ans" if age else pre
+        hero = res.get("hero", "Par défaut")
+        
+        hero_str = f" (Héros: {hero})" if hero and hero != "Par défaut" else ""
+        enfant_info = f"{pre}, {age} ans{hero_str}" if age else f"{pre}{hero_str}"
         
         danger = res.get("danger", "ce comportement")
         msg_edu = res.get("message_educatif", "On va apprendre à corriger cela.")
@@ -308,16 +312,19 @@ def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     prenom = val.get("prenom") or "l'enfant"
     age = val.get("age") or 5
     genre = val.get("genre") or "garçon"
+    hero = val.get("hero") or "Par défaut"
     p = p.replace("{prenom}", str(prenom))
     p = p.replace("{age}", str(age))
     p = p.replace("{genre}", str(genre))
+    p = p.replace("{hero}", str(hero))
     return _call(api_key, p, 3000)
 
 def parse_scenario(d: dict) -> tuple:
     prenom = d.get("prenom") or ""
     age = d.get("age") or 5
     genre = d.get("genre") or "garçon"
-    char = Character(prenom=str(prenom), age=int(age), genre=str(genre))
+    hero = d.get("hero") or "Par défaut"
+    char = Character(prenom=str(prenom), age=int(age), genre=str(genre), hero=str(hero))
     s = d.get("song", {})
     song = SongData(titre=s.get("titre",f"Chanson de {char.prenom}"), intro=s.get("intro","..."), acte1=s.get("acte1","..."),
         acte2=s.get("acte2","..."), refrain1=s.get("refrain1","..."), acte3=s.get("acte3","..."),
@@ -476,28 +483,51 @@ def anim_off(action,frame):
     if action=="pleure_assise": return 0,int(Cfg.SIZE*.04)
     return 0,int(3*math.sin(frame*.07))
 
-def draw_char(draw,cx,cy,action,emotion,frame,genre):
+def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
     S=Cfg.SIZE; dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
     shirt=P.SHIRT_G if genre=="fille" else P.SHIRT_B
     hair=P.HAIR_G if genre=="fille" else P.HAIR_B
     eye_c=P.EYE_G if genre=="fille" else P.EYE_B
+    pants=P.PANTS
+    shoe=P.SHOE
+    skin=P.SKIN
+    
+    # -- GESTION DES HÉROS SPÉCIFIQUES --
+    h = str(hero).lower()
+    if "spider" in h:
+        shirt=(220,30,30); pants=(40,60,180); shoe=(220,30,30); hair=(220,30,30); skin=(220,30,30)
+    elif "super" in h:
+        shirt=(40,60,200); pants=(220,30,30); hair=(20,20,20)
+    elif "masha" in h:
+        shirt=(200,50,150); pants=(200,50,150); hair=(200,50,150)
+    elif "dora" in h:
+        shirt=(240,100,180); pants=(250,140,40); hair=(60,30,10)
+    elif "elsa" in h or "neige" in h:
+        shirt=(120,220,255); pants=(120,220,255); hair=(255,250,210)
+    elif "batman" in h:
+        shirt=(50,50,50); pants=(30,30,30); shoe=(20,20,20); hair=(30,30,30)
+    elif "jerry" in h:
+        skin=(140,90,50); shirt=(140,90,50); pants=(140,90,50); hair=(140,90,50)
+    elif "tom" in h:
+        skin=(120,130,150); shirt=(120,130,150); pants=(120,130,150); hair=(120,130,150)
+
     draw.ellipse([cx-int(S*.06),cy+int(S*.015),cx+int(S*.06),cy+int(S*.03)],fill=(30,30,30))
     if emotion=="triste": shirt=lc(shirt,(130,130,160),.4)
     elif emotion=="effraye": shirt=lc(shirt,(180,180,190),.35)
     draw.ellipse([x-int(S*.05),y-int(S*.04),x+int(S*.05),y+int(S*.075)],fill=shirt,outline=P.OUTLINE,width=2)
     if action=="pleure_assise":
-        draw.ellipse([x-int(S*.06),y+int(S*.07),x+int(S*.01),y+int(S*.13)],fill=P.PANTS,outline=P.OUTLINE,width=2)
-        draw.ellipse([x+int(S*.01),y+int(S*.07),x+int(S*.06),y+int(S*.13)],fill=P.PANTS,outline=P.OUTLINE,width=2)
+        draw.ellipse([x-int(S*.06),y+int(S*.07),x+int(S*.01),y+int(S*.13)],fill=pants,outline=P.OUTLINE,width=2)
+        draw.ellipse([x+int(S*.01),y+int(S*.07),x+int(S*.06),y+int(S*.13)],fill=pants,outline=P.OUTLINE,width=2)
     else:
         sw=int(20*math.sin(frame*.2))if action in("court_vite","marche_content","court_panique")else 3
-        draw.line([x-int(S*.02),y+int(S*.065),x-int(S*.03)-sw,y+int(S*.12)],fill=P.PANTS,width=int(S*.022))
-        draw.line([x+int(S*.02),y+int(S*.065),x+int(S*.03)+sw,y+int(S*.12)],fill=P.PANTS,width=int(S*.022))
-        draw.ellipse([x-int(S*.05)-sw,y+int(S*.11),x-int(S*.01)-sw,y+int(S*.135)],fill=P.SHOE,outline=P.OUTLINE,width=2)
-        draw.ellipse([x+int(S*.01)+sw,y+int(S*.11),x+int(S*.05)+sw,y+int(S*.135)],fill=P.SHOE,outline=P.OUTLINE,width=2)
-    sk=P.SKIN
+        draw.line([x-int(S*.02),y+int(S*.065),x-int(S*.03)-sw,y+int(S*.12)],fill=pants,width=int(S*.022))
+        draw.line([x+int(S*.02),y+int(S*.065),x+int(S*.03)+sw,y+int(S*.12)],fill=pants,width=int(S*.022))
+        draw.ellipse([x-int(S*.05)-sw,y+int(S*.11),x-int(S*.01)-sw,y+int(S*.135)],fill=shoe,outline=P.OUTLINE,width=2)
+        draw.ellipse([x+int(S*.01)+sw,y+int(S*.11),x+int(S*.05)+sw,y+int(S*.135)],fill=shoe,outline=P.OUTLINE,width=2)
+    
     def arm(x1,y1,x2,y2):
-        draw.line([x1,y1,x2,y2],fill=sk,width=int(S*.018))
-        draw.ellipse([x2-5,y2-5,x2+5,y2+5],fill=sk,outline=P.OUTLINE,width=1)
+        draw.line([x1,y1,x2,y2],fill=skin,width=int(S*.018))
+        draw.ellipse([x2-5,y2-5,x2+5,y2+5],fill=skin,outline=P.OUTLINE,width=1)
     sw2=int(22*math.sin(frame*.18))
     if action=="saute_joie":
         arm(x-int(S*.046),y-int(S*.008),x-int(S*.084),y-int(S*.078))
@@ -515,8 +545,8 @@ def draw_char(draw,cx,cy,action,emotion,frame,genre):
         arm(x+int(S*.046),y-t2,x+int(S*.075),y-int(S*.05)-t2)
     elif action=="pointe_enfant":
         arm(x-int(S*.046),y,x-int(S*.06),y+int(S*.022))
-        draw.line([x+int(S*.046),y,x+int(S*.1),y-int(S*.02)],fill=sk,width=int(S*.018))
-        draw.ellipse([x+int(S*.094),y-int(S*.035),x+int(S*.116),y-int(S*.013)],fill=sk,outline=P.OUTLINE,width=1)
+        draw.line([x+int(S*.046),y,x+int(S*.1),y-int(S*.02)],fill=skin,width=int(S*.018))
+        draw.ellipse([x+int(S*.094),y-int(S*.035),x+int(S*.116),y-int(S*.013)],fill=skin,outline=P.OUTLINE,width=1)
     elif action in("saute_promesse","salue_saute"):
         arm(x-int(S*.046),y,x-int(S*.06),y+int(S*.025))
         arm(x+int(S*.046),y,x+int(S*.08),y-int(S*.086))
@@ -533,7 +563,7 @@ def draw_char(draw,cx,cy,action,emotion,frame,genre):
         arm(x-int(S*.046),y,x-int(S*.062),y+int(S*.022))
         arm(x+int(S*.046),y,x+int(S*.062),y+int(S*.022))
     hy=y-int(S*.13)
-    draw.ellipse([x-int(S*.066),hy,x+int(S*.066),hy+int(S*.136)],fill=P.SKIN,outline=P.OUTLINE,width=2)
+    draw.ellipse([x-int(S*.066),hy,x+int(S*.066),hy+int(S*.136)],fill=skin,outline=P.OUTLINE,width=2)
     draw.arc([x-int(S*.064),hy,x+int(S*.064),hy+int(S*.07)],180,0,fill=hair,width=10)
     if genre=="fille":
         draw.rectangle([x-int(S*.07),hy+int(S*.012),x-int(S*.042),hy+int(S*.094)],fill=hair)

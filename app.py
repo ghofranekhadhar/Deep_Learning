@@ -136,25 +136,26 @@ Analyse cette phrase parentale et réponds UNIQUEMENT en JSON valide sans markdo
 Phrase : {betise}"""
 
 SCN_PROMPT="""Tu es auteur de livres éducatifs pour enfants 3-8 ans. Génère une chanson narrative rimée.
+INSTRUCTION DE STYLE : Les phrases de narration (scenes_narration) DOIVENT être racontées avec une voix de conteur très enthousiaste ! Utilise des exclamations, des onomatopées (Boïng, Oups, Aïe) et des questions pour captiver l'enfant !
 Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","hero":"{hero}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
-  "Scène 1 Introduction : phrase courte qui décrit ce qui se passe (max 8 mots)",
-  "Scène 2 Vie normale : phrase courte",
-  "Scène 3 Belle journée : phrase courte",
-  "Scène 4 Découverte : phrase courte",
-  "Scène 5 Une idée : phrase courte",
-  "Scène 6 Attention danger : phrase courte",
-  "Scène 7 Non non non : phrase courte",
-  "Scène 8 La bêtise : phrase courte",
-  "Scène 9 Conséquences : phrase courte",
-  "Scène 10 Au secours : phrase courte",
-  "Scène 11 La leçon : phrase courte",
-  "Scène 12 Comprend : phrase courte",
-  "Scène 13 La promesse : phrase courte",
-  "Scène 14 Et toi : phrase courte",
-  "Scène 15 Au revoir : phrase courte"
+  "Scène 1 Introduction : Voix de conteur joyeux ! (ex: 'Coucou ! Voici le super {prenom} !')",
+  "Scène 2 Vie normale : Phrase très rythmée et amusante sur l'activité en cours",
+  "Scène 3 Découverte : Mystère et suspense... (ex: 'Oh là là... mais qu'est-ce que c'est que ça ?')",
+  "Scène 4 Tentation : Très curieux (ex: 'Mmmh, c'est très tentant de s'approcher...')",
+  "Scène 5 Hésitation : 'Faut-il le faire ? Sûrement pas !'",
+  "Scène 6 Danger : ALERTE ! Gros avertissement avec onomatopée ! (ex: 'ATTENTION ! C'est super dangereux !')",
+  "Scène 7 Erreur : Suspens dramatique... 'Mais {prenom} n'écoute pas...' ",
+  "Scène 8 Action (la bêtise) : Hop ! Il fait la bêtise !",
+  "Scène 9 Conséquence immédiate : BOUM / AÏE ! Exclamation vive (ex: 'Aïe aïe aïe ! Ça fait très mal !')",
+  "Scène 10 Peur/Douleur : 'Au secours !' {prenom} a eu très peur ! ",
+  "Scène 11 Leçon (Pourquoi) : Explication claire et douce de conteur : L'acte a causé ce mal",
+  "Scène 12 Explication : 'Voilà pourquoi c'est interdit !'",
+  "Scène 13 Compréhension : {prenom} comprend son erreur et regrette sincèrement",
+  "Scène 14 Promesse : Promesse solennelle ('Promis, je ne le ferai plus jamais !')",
+  "Scène 15 Conclusion : Et toi, sois très prudent ! À bientôt !"
 ],
 "image_prompts":[
   "Describe scene 1 background in English (e.g. colorful living room)",
@@ -177,12 +178,12 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
 "acte2":"découverte objet dangereux 3-4 phrases rimées",
 "refrain1":"avertissement NON NON NON 3-4 phrases rimées",
-"acte3":"commet la bêtise 2-3 phrases dramatiques",
-"acte4":"conséquence terrible 3-4 phrases rimées",
-"refrain2":"leçon et bonne solution 3-4 phrases rimées",
-"acte5":"comprend et pleure 3-4 phrases émouvantes",
-"acte6":"promesse solennelle 3-4 phrases rimées",
-"outro":"message direct à l'enfant spectateur 2-3 phrases"}}}}
+"acte3":"le héros fait EXPLICITEMENT la bêtise 2-3 phrases dramatiques",
+"acte4":"la conséquence effrayante (se fait mal/peur) 3-4 phrases rimées",
+"refrain2":"l'explication pédagogique : voilà pourquoi c'est interdit",
+"acte5":"comprend son erreur et regrette 3-4 phrases émouvantes",
+"acte6":"promesse de ne plus recommencer 3-4 phrases rimées",
+"outro":"message direct au spectateur pour qu'il ne fasse pas la bêtise"}}}}
 Phrase : {betise}"""
 
 # ─────────────────────────────────────────
@@ -345,21 +346,21 @@ def parse_scenario(d: dict) -> tuple:
         narrations.append(txt)
     # Complète si l'IA donne moins de 15 narrations
     defaults = [
-        f"{char.prenom} est prêt pour l'aventure !",
-        f"{char.prenom} joue joyeusement.",
-        "Une belle journée commence.",
-        "Quelque chose attire son attention...",
-        "Une idée dangereuse germe...",
-        "ATTENTION ! C'est dangereux !",
-        "Non non non ! N'fais pas ça !",
-        f"{char.prenom} n'écoute pas...",
-        "Oh non ! Les conséquences arrivent !",
-        "Au secours ! À l'aide !",
-        "Voilà ce qu'il faut faire.",
-        f"{char.prenom} comprend sa bêtise.",
-        "Une promesse solennelle est faite.",
-        "Et toi, tu ferais comment ?",
-        "Bravo d'avoir appris avec nous !",
+        f"Voici {char.prenom}.",
+        f"{char.prenom} joue joyeusement aujourd'hui.",
+        "Oh, regarde ce qu'il y a là !",
+        "Il s'approche, c'est très tentant.",
+        "Est-ce qu'il doit toucher ?",
+        "Attention, c'est dangereux !",
+        "Mais il n'écoute pas...",
+        "Oh non, il fait la bêtise !",
+        "Aïe ! Ça s'est très mal passé !",
+        "Il a mal et demande de l'aide !",
+        "Voilà pourquoi il ne fallait pas le faire.",
+        "C'est très dangereux !",
+        f"Maintenant, {char.prenom} a bien compris le danger.",
+        "Il promet de ne plus jamais recommencer.",
+        "Et toi aussi, sois très prudent !",
     ]
     while len(narrations) < 15:
         narrations.append(defaults[len(narrations)])

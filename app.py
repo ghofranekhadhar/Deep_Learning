@@ -1111,7 +1111,7 @@ def main():
             )
 
             # ─ 2. ZONE SCROLLABLE DES MESSAGES ─
-            chat_area = st.container(height=330, border=False)
+            chat_area = st.container(height=300, border=False)
             with chat_area:
                 for i, msg in enumerate(st.session_state.chat_history):
                     txt = _html.escape(msg["content"]).replace("\n", "<br>")
@@ -1122,11 +1122,12 @@ def main():
 
                     else:  # message parent
                         if _ei == i:
-                            # — Mode édition inline —
+                            # ── Mode édition inline ──
                             _, _ez = st.columns([1, 5])
                             with _ez:
                                 edited = st.text_area(
-                                    "Modifier", value=st.session_state.editing_content,
+                                    "Modifier",
+                                    value=st.session_state.editing_content,
                                     height=80, label_visibility="collapsed",
                                     key=f"inline_edit_{i}"
                                 )
@@ -1161,7 +1162,8 @@ def main():
                                         st.session_state.editing_index = None
                                         st.session_state.editing_content = ""
                                         st.rerun()
-                        # — Bulle parent à droite —
+                        else:
+                            # ── Bulle parent à droite + icône ✏️ ──
                             _, _bc = st.columns([2, 5])
                             with _bc:
                                 st.markdown(
@@ -1171,7 +1173,7 @@ def main():
                                     '</div>',
                                     unsafe_allow_html=True
                                 )
-                            # Icône ✏️ seule, alignée à droite sous la bulle
+                            # icône ✏️ seule, à droite sous la bulle
                             _, _mc = st.columns([5, 2])
                             with _mc:
                                 if st.button("✏️", key=f"mod_{i}",
@@ -1180,7 +1182,7 @@ def main():
                                     st.session_state.editing_content = msg["content"]
                                     st.rerun()
 
-                # Auto-scroll vers le dernier message
+                # Auto-scroll
                 _cmp.html(
                     """<script>
                     try {
@@ -1194,11 +1196,99 @@ def main():
                     height=0
                 )
 
-            # ─ 3. CHAMP DE SAISIE (dans le cadre, Enter = envoyer) ─
-            st.markdown(
-                '<div class="chat-input-wrap">',
-                unsafe_allow_html=True
-            )
+            # ─ 3. BOUTON GÉNÉRER VIDÉO (toujours visible, dans le cadre) ─
+            _lv = st.session_state.val
+            _scenario_ready = bool(_lv and _lv.get("type") == "scenario" and _lv.get("valide"))
+
+            if _scenario_ready:
+                # Explication du problème détecté pour validation parent
+                _v = _lv
+                st.markdown(
+                    "<div style='background:#f0fdf4;border:1px solid #86efac;"
+                    "border-radius:10px;padding:10px 14px;margin:8px 0 6px;"
+                    "font-size:0.85rem;color:#166534;'>"
+                    f"✅ <b>Problème compris :</b> <em>{_v.get('comprehension','')}</em><br>"
+                    f"<span style='font-size:0.78rem;opacity:0.85;'>"
+                    f"👶 {_v.get('prenom','?')} · {_v.get('age','')} ans · "
+                    f"⚠️ {_v.get('danger','')}</span>"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+                # Enrichissements
+                _sugg = _v.get("suggestions", [])
+                if _sugg:
+                    _sc1, _sc2 = st.columns(2)
+                    for _sid, _s in enumerate(_sugg[:2]):
+                        with [_sc1, _sc2][_sid]:
+                            if st.button(f"+ {_s}", key=f"add_sugg_{_sid}",
+                                         use_container_width=True):
+                                _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
+                                st.session_state.betise = _nm
+                                st.session_state.chat_history.append(
+                                    {"role":"user","content":_nm,"ts":_ts()})
+                                with st.spinner("🤖 Mise à jour…"):
+                                    try:
+                                        _r2 = chat_ai(_nm, st.session_state.api_key)
+                                        st.session_state.chat_history.append(
+                                            {"role":"ai","content":_r2.get("response",""),"ts":_ts()})
+                                        st.session_state.val = _r2 if _r2.get("type")=="scenario" else None
+                                        if _r2.get("theme") in THEMES:
+                                            st.session_state.theme = _r2["theme"]
+                                    except Exception as _e:
+                                        st.error(f"Erreur : {_e}")
+                                st.rerun()
+
+            # Bouton Générer vidéo — actif si scénario, grisé sinon
+            st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
+            _gcol, _rcol = st.columns([3, 1])
+            with _gcol:
+                if st.button(
+                    "🎬 Générer le dessin animé éducatif !",
+                    type="primary" if _scenario_ready else "secondary",
+                    use_container_width=True,
+                    key="btn_gen_video",
+                    disabled=not _scenario_ready
+                ):
+                    with st.spinner("🎵 Génération du scénario…"):
+                        try:
+                            _data = scenario_ai(
+                                _v.get("comprehension", st.session_state.betise),
+                                _v, st.session_state.api_key
+                            )
+                            st.session_state.scenario = _data
+                            _ch, _sg, _nar, _ipr = parse_scenario(_data)
+                            st.session_state.char = _ch
+                            st.session_state.song = _sg
+                            st.session_state.narrations = _nar
+                            st.session_state.img_prompts = _ipr
+                            st.session_state.step = 2
+                            st.rerun()
+                        except json.JSONDecodeError:
+                            st.error("Format JSON invalide.")
+                        except Exception as _e:
+                            st.error(f"Erreur : {_e}")
+            with _rcol:
+                if st.button("🔄 Réinterp.", use_container_width=True,
+                             key="btn_reinterp", disabled=not _scenario_ready):
+                    with st.spinner("🤖 Nouvelle interprétation…"):
+                        try:
+                            _r3 = chat_ai(st.session_state.betise, st.session_state.api_key)
+                            _rp3 = _r3.get("response", "")
+                            if st.session_state.chat_history and \
+                               st.session_state.chat_history[-1]["role"] == "ai":
+                                st.session_state.chat_history[-1]["content"] = _rp3
+                            else:
+                                st.session_state.chat_history.append(
+                                    {"role":"ai","content":_rp3,"ts":_ts()})
+                            st.session_state.val = _r3 if _r3.get("type")=="scenario" else None
+                            if _r3.get("theme") in THEMES:
+                                st.session_state.theme = _r3["theme"]
+                            st.rerun()
+                        except Exception as _e:
+                            st.error(f"Erreur : {_e}")
+
+            # ─ 4. CHAMP DE SAISIE (dans le cadre, Enter = envoyer) ─
+            st.markdown('<div class="chat-input-wrap">', unsafe_allow_html=True)
             with st.form(key="chat_form", enter_to_submit=True, border=False):
                 _fc, _fb = st.columns([11, 1])
                 with _fc:
@@ -1215,6 +1305,7 @@ def main():
                         "↑", type="primary", use_container_width=True
                     )
             st.markdown('</div>', unsafe_allow_html=True)
+
 
         # ─ Logique d'envoi ─
         if send_clicked:

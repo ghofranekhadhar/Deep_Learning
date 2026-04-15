@@ -1444,6 +1444,59 @@ def main():
 
 
 
+        # ══════════════════════════════════════════════════
+        # CHOIX DU PERSONNAGE
+        # ─────────────────────────────────────────
+        st.markdown(
+            "<div style='margin-top:20px;margin-bottom:8px;'>"
+            "<span style='font-size:0.75rem;font-weight:700;color:#64748b;"
+            "text-transform:uppercase;letter-spacing:0.06em;'>🦸 Personnage de la vidéo</span><br>"
+            "<span style='font-size:0.8rem;color:#8492a6;'>"
+            "Cliquez pour choisir un héros spécifique, ou laissez l'IA choisir par défaut !"
+            "</span>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        HEROES = [
+            {"icon": "🤖", "label": "Par défaut (L'IA choisit)"},
+            {"icon": "👧", "label": "Petite fille"},
+            {"icon": "👦", "label": "Petit garçon"},
+            {"icon": "🕸️", "label": "Spiderman"},
+            {"icon": "🦸‍♂️", "label": "Superman"},
+            {"icon": "🐭", "label": "Tom & Jerry"},
+            {"icon": "🐻", "label": "Masha"},
+            {"icon": "🎒", "label": "Dora"},
+            {"icon": "❄️", "label": "Elsa"},
+        ]
+
+        def append_hero(hero_name):
+            current = st.session_state.get(_input_key, "")
+            
+            if "Par défaut" in hero_name:
+                addon = "Laissez l'IA choisir le personnage."
+            else:
+                addon = f"Le héros de l'histoire sera {hero_name}."
+                
+            if current:
+                if not current.endswith(" "):
+                    current += " "
+                st.session_state[_input_key] = current + addon
+            else:
+                st.session_state[_input_key] = addon
+
+        for i in range(0, len(HEROES), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                idx = i + j
+                if idx < len(HEROES):
+                    h = HEROES[idx]
+                    with cols[j]:
+                        st.button(
+                            f"{h['icon']} {h['label']}", key=f"hero_{idx}",
+                            use_container_width=True, on_click=append_hero, args=(h["label"],)
+                        )
+
     # ══════════════════════════════════════
     #  ÉTAPE 2 — SCÉNARIO
     # ══════════════════════════════════════

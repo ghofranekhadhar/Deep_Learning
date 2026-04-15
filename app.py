@@ -219,22 +219,28 @@ def validate_ai(betise: str, api_key: str) -> dict:
 #  CHAT PROMPT — conversation libre + détection scénario
 # ─────────────────────────────────────────
 CHAT_PROMPT = """
-Tu es un assistant pédagogique chaleureux, bienveillant et professionnel, spécialisé dans
-l'éducation et la sécurité des enfants de 3 à 8 ans. Tu parles UNIQUEMENT français.
+Tu es un assistant pédagogique chaleureux et professionnel, spécialisé dans la sécurité
+et l'éducation des enfants de 3 à 8 ans. Tu parles UNIQUEMENT français.
 
-Règle 1 — CONVERSATION NORMALE : Si le parent dit bonjour, pose une question générale,
-parle de la météo, demande une définition, etc. → réponds naturellement et chaleureusement.
+CONTEXTE IMPORTANT : Tu parles TOUJOURS à un PARENT à propos de SON ENFANT.
+Même si le parent pose une question générale (bonjour, c'est quoi un chat, etc.),
+tu réponds de façon chaleureuse ET tu ramenes subtilement vers l'enfant, les apprentissages,
+ou la sécurité infantile. Tu n'es jamais un assistant général : tu es l'ami du parent pour
+bien éduquer son enfant.
+
+Règle 1 — CONVERSATION : Si le parent dit bonjour, pose une question, demande un conseil
+  → réponds naturellement, chaleureusement, ET ramene vers l'enfant / l'éducation.
 
 Règle 2 — MODE SCÉNARIO : Si le parent décrit un comportement DANGEREUX ou INTERDIT d'un
-enfant (en mentionnant un prénom et un âge), -> active le mode scénario éducatif.
+  enfant (en mentionnant un prénom et un âge) → active le mode scénario éducatif.
 
 Réponds UNIQUEMENT en JSON valide sans markdown :
 
 Pour conversation normale :
-{{"type":"general","response":"ta réponse naturelle et amicale"}}
+{{"type":"general","response":"ta réponse naturelle et amicale centrée sur l'enfant et l'éducation"}}
 
 Pour scénario éducatif :
-{{"type":"scenario","response":"réponse naturelle qui confirme la compréhension",
+{{"type":"scenario","response":"réponse naturelle qui confirme la compréhension et encourage le parent",
 "valide":true,"raison":"","prenom":"prénom","age":5,"genre":"garçon ou fille",
 "danger":"3 mots","theme":"electric|kitchen|meds|pool|road|fire|general",
 "comprehension":"ce que l'enfant fait (1 phrase bienveillante)",
@@ -243,7 +249,7 @@ Pour scénario éducatif :
 "suggestions":["phrase enrichie 1","phrase enrichie 2"]}}
 
 Pour message hors sujet ou inapproprié :
-{{"type":"invalid","response":"explication polie pourquoi tu ne peux pas aider",
+{{"type":"invalid","response":"explication polie, puis ramene vers ton rôle pédagogique",
 "suggestions":["exemple de message adapté 1","exemple 2"]}}
 
 Message du parent : {message}
@@ -1155,8 +1161,7 @@ def main():
                                         st.session_state.editing_index = None
                                         st.session_state.editing_content = ""
                                         st.rerun()
-                        else:
-                            # — Bulle parent à droite —
+                        # — Bulle parent à droite —
                             _, _bc = st.columns([2, 5])
                             with _bc:
                                 st.markdown(
@@ -1166,10 +1171,10 @@ def main():
                                     '</div>',
                                     unsafe_allow_html=True
                                 )
-                            # Lien «Modifier» discret sous la bulle
-                            _, _mc = st.columns([4, 3])
+                            # Icône ✏️ seule, alignée à droite sous la bulle
+                            _, _mc = st.columns([5, 2])
                             with _mc:
-                                if st.button("✏️ modifier", key=f"mod_{i}",
+                                if st.button("✏️", key=f"mod_{i}",
                                              help="Modifier ce message"):
                                     st.session_state.editing_index = i
                                     st.session_state.editing_content = msg["content"]
@@ -1189,28 +1194,29 @@ def main():
                     height=0
                 )
 
-            # ─ 3. CHAMP DE SAISIE (en bas du cadre) ─
+            # ─ 3. CHAMP DE SAISIE (dans le cadre, Enter = envoyer) ─
             st.markdown(
                 '<div class="chat-input-wrap">',
                 unsafe_allow_html=True
             )
-            _tc, _bc2 = st.columns([11, 1])
-            with _tc:
-                st.text_area(
-                    "msg",
-                    placeholder="Écrivez votre message…",
-                    height=72, label_visibility="collapsed",
-                    key=_input_key
-                )
-            with _bc2:
-                st.markdown("<div style='margin-top:36px;'></div>",
-                            unsafe_allow_html=True)
-                send_clicked = st.button("↑", type="primary",
-                                         use_container_width=True,
-                                         key="btn_send_icon")
+            with st.form(key="chat_form", enter_to_submit=True, border=False):
+                _fc, _fb = st.columns([11, 1])
+                with _fc:
+                    st.text_area(
+                        "msg",
+                        placeholder="Écrivez votre message… (Entrée pour envoyer)",
+                        height=72, label_visibility="collapsed",
+                        key=_input_key
+                    )
+                with _fb:
+                    st.markdown("<div style='margin-top:36px;'></div>",
+                                unsafe_allow_html=True)
+                    send_clicked = st.form_submit_button(
+                        "↑", type="primary", use_container_width=True
+                    )
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # ─ Logique d'envoi (après le cadre) ─
+        # ─ Logique d'envoi ─
         if send_clicked:
             msg_texte = st.session_state.get(_input_key, "").strip()
             if not st.session_state.api_key.strip():
@@ -1237,6 +1243,93 @@ def main():
                     except Exception as e:
                         st.session_state.chat_history.pop()
                         st.error(f"Erreur API Groq : {e}")
+
+        # ─ SCÉNARIO DÉTECTÉ : bouton vidéo + enrichissements ─
+        last_val = st.session_state.val
+        if last_val and last_val.get("type") == "scenario" and last_val.get("valide"):
+            v = last_val
+            sugg = v.get("suggestions", [])
+
+            # Carte info scénario
+            st.markdown(
+                "<div style='background:linear-gradient(135deg,#f0fdf4,#dcfce7);"
+                "border:1px solid #86efac;border-radius:12px;padding:12px 16px;"
+                "margin-top:14px;font-size:0.88rem;color:#166534;'>"
+                f"🎬 <b>Scénario détecté !</b> &nbsp; · &nbsp;"
+                f"{v.get('prenom','?')} · {v.get('age','')} ans · ⚠️ {v.get('danger','')}"
+                "</div>",
+                unsafe_allow_html=True
+            )
+
+            # Enrichissements (comme avant)
+            if sugg:
+                st.markdown(
+                    "<div style='margin-top:10px;font-size:0.78rem;color:#64748b;"  
+                    "font-weight:600;'>➕ Enrichir le scénario :</div>",
+                    unsafe_allow_html=True
+                )
+                _sc1, _sc2 = st.columns(2)
+                _scols = [_sc1, _sc2]
+                for sid, s in enumerate(sugg[:2]):
+                    with _scols[sid]:
+                        if st.button(f"+ {s}", key=f"add_sugg_{sid}",
+                                     use_container_width=True):
+                            new_msg = (st.session_state.betise.rstrip(".,!? ") + ", " + s).strip()
+                            st.session_state.betise = new_msg
+                            st.session_state.chat_history.append(
+                                {"role":"user","content":new_msg,"ts":_ts()})
+                            with st.spinner("🤖 Mise à jour…"):
+                                try:
+                                    res2 = chat_ai(new_msg, st.session_state.api_key)
+                                    st.session_state.chat_history.append(
+                                        {"role":"ai","content":res2.get("response",""),"ts":_ts()})
+                                    st.session_state.val = res2 if res2.get("type")=="scenario" else None
+                                    if res2.get("theme") in THEMES:
+                                        st.session_state.theme = res2["theme"]
+                                except Exception as e:
+                                    st.error(f"Erreur : {e}")
+                            st.rerun()
+
+            # Bouton principal — Générer la vidéo
+            st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
+            _cg, _cn = st.columns([3, 1])
+            with _cg:
+                if st.button("🎬 Générer le dessin animé éducatif !",
+                             type="primary", use_container_width=True, key="btn_gen_video"):
+                    with st.spinner("🎵 Génération du scénario…"):
+                        try:
+                            data = scenario_ai(v.get("comprehension", st.session_state.betise),
+                                               v, st.session_state.api_key)
+                            st.session_state.scenario = data
+                            char, song, narrations, img_prompts = parse_scenario(data)
+                            st.session_state.char = char
+                            st.session_state.song = song
+                            st.session_state.narrations = narrations
+                            st.session_state.img_prompts = img_prompts
+                            st.session_state.step = 2
+                            st.rerun()
+                        except json.JSONDecodeError:
+                            st.error("Format JSON invalide.")
+                        except Exception as e:
+                            st.error(f"Erreur : {e}")
+            with _cn:
+                if st.button("🔄 Réinterpréter", use_container_width=True, key="btn_reinterp"):
+                    with st.spinner("🤖 Nouvelle interprétation…"):
+                        try:
+                            res3 = chat_ai(st.session_state.betise, st.session_state.api_key)
+                            reply3 = res3.get("response", "")
+                            if st.session_state.chat_history and \
+                               st.session_state.chat_history[-1]["role"] == "ai":
+                                st.session_state.chat_history[-1]["content"] = reply3
+                            else:
+                                st.session_state.chat_history.append(
+                                    {"role":"ai","content":reply3,"ts":_ts()})
+                            st.session_state.val = res3 if res3.get("type")=="scenario" else None
+                            if res3.get("theme") in THEMES:
+                                st.session_state.theme = res3["theme"]
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur : {e}")
 
 
 

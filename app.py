@@ -1219,6 +1219,40 @@ def main():
                                     st.session_state.editing_content = msg["content"]
                                     st.rerun()
 
+                # — Enrichissements (à l'intérieur du chat) —
+                _lv = st.session_state.val
+                if _lv and _lv.get("type") == "scenario" and _lv.get("valide"):
+                    _sugg = _lv.get("suggestions", [])
+                    if _sugg:
+                        st.markdown(
+                            "<div style='font-size:0.78rem;font-weight:600;color:#64748b;"
+                            "margin:10px 0 5px 15px;'>✨ Enrichir la situation :</div>",
+                            unsafe_allow_html=True
+                        )
+                        _sugg_to_show = _sugg[:3]
+                        _sc = st.columns([1]*len(_sugg_to_show))
+                        for _sid, _s in enumerate(_sugg_to_show):
+                            with _sc[_sid]:
+                                if st.button(f"+ {_s}", key=f"enrich_{_sid}",
+                                             use_container_width=True):
+                                    _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
+                                    st.session_state.betise = _nm
+                                    st.session_state.chat_history.append(
+                                        {"role": "user", "content": _nm, "ts": _ts()})
+                                    with st.spinner("🤖 Mise à jour du scénario…"):
+                                        try:
+                                            _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
+                                            reply2 = _r2.get("response","")
+                                            st.session_state.chat_history.append(
+                                                {"role":"ai","content":reply2,"ts":_ts()})
+                                            if _r2.get("type") == "scenario":
+                                                st.session_state.val = _r2
+                                                if _r2.get("theme") in THEMES:
+                                                    st.session_state.theme = _r2["theme"]
+                                        except Exception as _e:
+                                            st.error(f"Erreur : {_e}")
+                                    st.rerun()
+
                 # Auto-scroll
                 _cmp.html(f"""<script>
                 function forceScroll() {{
@@ -1310,41 +1344,6 @@ def main():
                 "</div>",
                 unsafe_allow_html=True
             )
-
-            # ── Enrichissements ──
-            _sugg = _v.get("suggestions", [])
-            if _sugg:
-                st.markdown(
-                    "<div style='font-size:0.78rem;font-weight:600;color:#64748b;"
-                    "margin:10px 0 5px;'>✨ Enrichir la situation :</div>",
-                    unsafe_allow_html=True
-                )
-                _sugg_to_show = _sugg[:3]
-                _sc = st.columns(len(_sugg_to_show))
-                for _sid, _s in enumerate(_sugg_to_show):
-                    with _sc[_sid]:
-                        if st.button(f"+ {_s}", key=f"enrich_{_sid}",
-                                     use_container_width=True):
-                            _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
-                            st.session_state.betise = _nm
-                            st.session_state.chat_history.append(
-                                {"role": "user", "content": _nm, "ts": _ts()})
-                            with st.spinner("🤖 Mise à jour du scénario…"):
-                                try:
-                                    _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
-                                    reply2 = _r2.get("response","")
-                                    st.session_state.chat_history.append(
-                                        {"role":"ai","content":reply2,"ts":_ts()})
-                                    # Si l'IA re-détecte un scénario → mettre à jour
-                                    # Sinon → GARDER l'ancien val (ne pas réinitialiser)
-                                    if _r2.get("type") == "scenario":
-                                        st.session_state.val = _r2
-                                        if _r2.get("theme") in THEMES:
-                                            st.session_state.theme = _r2["theme"]
-                                    # else: val inchangé → bouton génération reste actif
-                                except Exception as _e:
-                                    st.error(f"Erreur : {_e}")
-                            st.rerun()
 
             # ── Boutons Actions ──
             st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)

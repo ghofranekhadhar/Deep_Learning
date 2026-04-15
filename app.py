@@ -1171,6 +1171,7 @@ def main():
                                             st.session_state.editing_index = None
                                             st.session_state.editing_content = ""
                                             st.session_state.val = None
+                                            st.session_state.betise = new_txt
                                             with st.spinner("🤖 Analyse en cours…"):
                                                 try:
                                                     res = chat_ai(new_txt, st.session_state.api_key)
@@ -1243,18 +1244,27 @@ def main():
             elif not _GROQ_OK:
                 st.error("La bibliothèque `groq` n'est pas installée.")
             else:
-                st.session_state.betise = _msg
+                if st.session_state.val and st.session_state.val.get("type") == "scenario":
+                    full_msg = f"{st.session_state.betise.rstrip('.,!? ')}, {_msg}"
+                else:
+                    full_msg = _msg
+                    
+                st.session_state.betise = full_msg
+                
                 st.session_state.chat_history.append(
                     {"role": "user", "content": _msg, "ts": _ts()})
                 with st.spinner("🤖 Je comprends la situation…"):
                     try:
-                        res = chat_ai(_msg, st.session_state.api_key)
+                        res = chat_ai(full_msg, st.session_state.api_key)
                         reply = res.get("response", "Je suis là !")
                         st.session_state.chat_history.append(
                             {"role": "ai", "content": reply, "ts": _ts()})
-                        st.session_state.val = res if res.get("type") == "scenario" else None
-                        if res.get("theme") in THEMES:
-                            st.session_state.theme = res["theme"]
+                            
+                        # Comme pour l'enrichissement : on garde l'ancien val si c'est pas un scénario
+                        if res.get("type") == "scenario":
+                            st.session_state.val = res
+                            if res.get("theme") in THEMES:
+                                st.session_state.theme = res["theme"]
                         st.rerun()
                     except Exception as e:
                         st.session_state.chat_history.pop()
@@ -1570,3 +1580,4 @@ def main():
 
 if __name__=="__main__":
     main()
+    

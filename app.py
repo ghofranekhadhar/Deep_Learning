@@ -1228,7 +1228,7 @@ def main():
                     if _sugg:
                         st.markdown(
                             "<div style='margin: 4px 0 6px 45px;'>"
-                            "<span style='font-size:0.68rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em;'>"
+                            "<span style='font-size:0.68rem; font-weight:700; color:#4f46e5; text-transform:uppercase; letter-spacing:0.06em;'>"
                             "↳ Suggestions rapides"
                             "</span>"
                             "</div>",

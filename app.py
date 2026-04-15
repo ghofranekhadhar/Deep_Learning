@@ -1219,25 +1219,28 @@ def main():
                                     st.session_state.editing_content = msg["content"]
                                     st.rerun()
 
-                # — Enrichissements (à l'intérieur du chat) —
+                # — Enrichissements Actionnables —
                 _lv = st.session_state.val
                 if _lv and _lv.get("type") == "scenario" and _lv.get("valide"):
                     _sugg = _lv.get("suggestions", [])
                     if _sugg:
                         st.markdown(
-                            "<div style='display:flex;align-items:center;margin:12px 15px 8px;'>"
-                            "<div style='font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;'>"
-                            "✨ Suggestions d'enrichissement</div>"
-                            "<div style='flex-grow:1;height:1px;background:#f1f5f9;margin-left:10px;'></div>"
+                            "<div style='margin:-5px 0 10px 50px; padding:10px 14px; background:#eef2ff; border-left:3px solid #6366f1; border-radius:0 12px 12px 12px; display:inline-block; max-width:85%;'>"
+                            "<div style='font-size:0.75rem;font-weight:800;color:#4f46e5;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;'>"
+                            "💡 Affinez le scénario</div>"
+                            "<div style='font-size:0.8rem;color:#475569;'>"
+                            "Cliquez ci-dessous pour m'ajouter ce contexte :</div>"
                             "</div>",
                             unsafe_allow_html=True
                         )
-                        _sugg_to_show = _sugg[:3]
-                        _sc = st.columns([1]*len(_sugg_to_show))
-                        for _sid, _s in enumerate(_sugg_to_show):
-                            with _sc[_sid]:
-                                if st.button(f"💡 {_s}", key=f"enrich_{_sid}",
-                                             use_container_width=True):
+                        _jc, _kc, _lc = st.columns([1, 10, 1])
+                        with _kc:
+                            _sugg_to_show = _sugg[:3]
+                            _cc = st.columns(len(_sugg_to_show))
+                            for _sid, _s in enumerate(_sugg_to_show):
+                                with _cc[_sid]:
+                                    if st.button(f"✨ {_s}", key=f"enrich_{_sid}",
+                                                 use_container_width=True):
                                     _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
                                     st.session_state.betise = _nm
                                     st.session_state.chat_history.append(

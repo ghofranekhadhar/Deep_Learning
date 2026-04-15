@@ -239,6 +239,12 @@ Exemples : "Mon fils fait des bêtises avec...", "Ma fille n'arrête pas de...",
   → Prénom et âge sont OPTIONNELS (utilise "l'enfant" et 6 ans si absents).
   → Ta réponse : phrase de confirmation empathique courte.
 
+Règle 3 — MISES À JOUR ET CORRECTIONS (CRUCIAL) :
+Le message du parent contient tout l'historique des discussions concaténé. Les informations À LA FIN du message sont LES PLUS RÉCENTES ET LES PLUS IMPORTANTES.
+Si le parent corrige ou change une information à la fin (comme le prénom, l'âge, le genre ou le comportement), tu DOIS ABSOLUMENT ÉCRASER l'ancienne valeur et renvoyer la NOUVELLE valeur.
+Exemple : "Adam 5 ans tape, remplacer par 8 ans, le nom est Salma" → Tu dois renvoyer "Salma" et 8 ans, et totalement ignorer Adam et 5.
+Exemple : "Salma ? 8 ans" → Tu dois renvoyer "Salma" et 8 ans sans te poser de question.
+
 SUGGESTIONS D'ENRICHISSEMENT (Mode Scénario) : 
 Génère 3 suggestions COURTES et DIRECTEMENT utilisables par le parent pour ajouter du contexte.
 Exemples : "dès que j'ai le dos tourné", "il refuse de m'écouter", "ça arrive tous les jours"
@@ -268,9 +274,13 @@ Pour hors sujet :
 Message du parent : {message}
 """
 
-def chat_ai(message: str, api_key: str) -> dict:
+def chat_ai(message: str, api_key: str, current_state: dict = None) -> dict:
     """Analyse le message et retourne type general/scenario/invalid + réponse."""
     prompt = CHAT_PROMPT.replace("{message}", message)
+    if current_state and current_state.get("type") == "scenario":
+        prompt += f"\n\nÉTAT ACTUEL À METTRE À JOUR : Prénom='{current_state.get('prenom')}', Âge={current_state.get('age')}, Genre={current_state.get('genre')}"
+        prompt += "\nINSTRUCTION SPECIALE : Si le message du parent apporte une correction ou un nouveau prénom/âge/genre, applique absolument cette modification à l'état actuel et renvoie-le mis à jour de manière prioritaire."
+        
     res = _call(api_key, prompt, 1500)
     if res.get("type") == "scenario":
         pre = res.get("prenom") or "Votre enfant"
@@ -1174,7 +1184,7 @@ def main():
                                             st.session_state.betise = new_txt
                                             with st.spinner("🤖 Analyse en cours…"):
                                                 try:
-                                                    res = chat_ai(new_txt, st.session_state.api_key)
+                                                    res = chat_ai(new_txt, st.session_state.api_key, st.session_state.val)
                                                     reply = res.get("response", "Bien reçu !")
                                                     st.session_state.chat_history.append(
                                                         {"role":"ai","content":reply,"ts":_ts()})
@@ -1255,7 +1265,7 @@ def main():
                     {"role": "user", "content": _msg, "ts": _ts()})
                 with st.spinner("🤖 Je comprends la situation…"):
                     try:
-                        res = chat_ai(full_msg, st.session_state.api_key)
+                        res = chat_ai(full_msg, st.session_state.api_key, st.session_state.val)
                         reply = res.get("response", "Je suis là !")
                         st.session_state.chat_history.append(
                             {"role": "ai", "content": reply, "ts": _ts()})
@@ -1312,7 +1322,7 @@ def main():
                                 {"role": "user", "content": _nm, "ts": _ts()})
                             with st.spinner("🤖 Mise à jour du scénario…"):
                                 try:
-                                    _r2 = chat_ai(_nm, st.session_state.api_key)
+                                    _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)
                                     reply2 = _r2.get("response","")
                                     st.session_state.chat_history.append(
                                         {"role":"ai","content":reply2,"ts":_ts()})
@@ -1355,7 +1365,7 @@ def main():
                 if st.button("🔄 Réinterpréter", use_container_width=True, key="btn_reinterp"):
                     with st.spinner("🤖 Nouvelle réflexion…"):
                         try:
-                            _r3 = chat_ai(st.session_state.betise, st.session_state.api_key)
+                            _r3 = chat_ai(st.session_state.betise, st.session_state.api_key, st.session_state.val)
                             reply3 = _r3.get("response", "")
                             st.session_state.chat_history.append(
                                 {"role":"ai", "content":reply3, "ts":_ts()}

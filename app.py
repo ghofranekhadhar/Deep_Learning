@@ -248,7 +248,7 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
 Pour comportement inquiétant/corrigible :
 {{"type":"scenario","response":"",
 "valide":true,"raison":"",
-"prenom":"prénom ou l enfant","age":6,"genre":"garçon ou fille",
+"prenom":"prénom (ou 'Votre enfant')","age":null,"genre":"garçon ou fille",
 "danger":"description courte du comportement",
 "theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
 "comprehension":"Il fait [comportement].",
@@ -273,8 +273,10 @@ def chat_ai(message: str, api_key: str) -> dict:
     prompt = CHAT_PROMPT.replace("{message}", message)
     res = _call(api_key, prompt, 1500)
     if res.get("type") == "scenario":
-        pre = res.get("prenom", "l'enfant")
-        age = res.get("age", 6)
+        pre = res.get("prenom") or "Votre enfant"
+        age = res.get("age")
+        enfant_info = f"{pre}, {age} ans" if age else pre
+        
         danger = res.get("danger", "ce comportement")
         msg_edu = res.get("message_educatif", "On va apprendre à corriger cela.")
         scenes = res.get("scenes", ["[Scène 1]", "[Scène 2]", "[Scène 3]", "[Scène 4]"])
@@ -282,7 +284,7 @@ def chat_ai(message: str, api_key: str) -> dict:
         res["response"] = (
             f"✅ J'ai bien compris la situation !\n\n"
             f"Voici ce que je vais mettre dans la vidéo :\n\n"
-            f"👤 ENFANT : {pre}, {age} ans\n"
+            f"👤 ENFANT : {enfant_info}\n"
             f"⚠️ DANGER : {danger}\n"
             f"📖 MESSAGE ÉDUCATIF : \"{msg_edu}\"\n\n"
             f"🎨 IMAGES DANS LA VIDÉO :\n{scenes_str}"
@@ -1266,13 +1268,14 @@ def main():
 
         if _ok:
             _v = _lv
+            _age_str = f" · {_v.get('age')} ans" if _v.get("age") else ""
             # ── Carte de validation ──
             st.markdown(
                 "<div style='background:linear-gradient(135deg,#f0fdf4,#dcfce7);"
                 "border:1.5px solid #4ade80;border-radius:14px;"
                 "padding:14px 18px;margin-top:14px;'>"
                 "<div style='font-size:0.9rem;font-weight:700;color:#15803d;margin-bottom:6px;'>"
-                f"📌 Scénario prêt : {_v.get('prenom','?')} · {_v.get('age','')} ans • {_v.get('danger','')}</div>"
+                f"📌 Scénario prêt : {_v.get('prenom','Votre enfant')}{_age_str} • {_v.get('danger','')}</div>"
                 f"<div style='font-size:0.88rem;color:#166534;opacity:0.85;'>"
                 f"{_v.get('comprehension','')}</div>"
                 "</div>",

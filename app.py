@@ -1024,6 +1024,7 @@ def main():
     if st.session_state.step == 1:
         import datetime as _dt
         import html as _html
+        import streamlit.components.v1 as _cmp
 
         def _ts():
             return _dt.datetime.now().strftime("%H:%M")
@@ -1059,11 +1060,12 @@ def main():
         )
         st.markdown(ds_ai_bubble(greeting), unsafe_allow_html=True)
 
-        # ─ ZONE DE DISCUSSION SCROLLABLE ─
+        # ─ ZONE DE DISCUSSION SCROLLABLE (avec cadre visible) ─
         _ei = st.session_state.get("editing_index", None)
+        _n_msgs = len(st.session_state.chat_history)
 
-        # Utilise st.container avec hauteur fixe pour créer la zone scrollable
-        chat_area = st.container(height=420, border=False)
+        # border=True = cadre visible autour de la zone de chat
+        chat_area = st.container(height=420, border=True)
 
         with chat_area:
             for i, msg in enumerate(st.session_state.chat_history):
@@ -1115,7 +1117,7 @@ def main():
                                     st.session_state.editing_content = ""
                                     st.rerun()
                     else:
-                        # — Affichage normal : bulle à droite + 'Modifier' discret en dessous —
+                        # — Bulle parent à droite —
                         _, _bc = st.columns([2, 5])
                         with _bc:
                             bubble_html = (
@@ -1125,14 +1127,32 @@ def main():
                                 '</div>'
                             )
                             st.markdown(bubble_html, unsafe_allow_html=True)
-                        # Lien 'Modifier' en dessous, aligné à droite
-                        _, _mc = st.columns([2, 5])
+                        # — Lien "Modifier" discret sous la bulle, aligné à droite —
+                        _, _mc = st.columns([4, 3])
                         with _mc:
-                            if st.button(f"✏️ Modifier", key=f"mod_{i}",
-                                         use_container_width=False):
+                            if st.button(
+                                "\u270f\ufe0f modifier",
+                                key=f"mod_{i}",
+                                help="Modifier ce message"
+                            ):
                                 st.session_state.editing_index = i
                                 st.session_state.editing_content = msg["content"]
                                 st.rerun()
+
+            # Auto-scroll vers le bas à chaque nouveau message
+            _cmp.html(
+                """<script>
+                try {
+                  var scrollDivs = window.parent.document.querySelectorAll(
+                    '[data-testid="stVerticalBlockBorderWrapper"]');
+                  if (scrollDivs.length > 0) {
+                    var last = scrollDivs[scrollDivs.length - 1];
+                    last.scrollTop = last.scrollHeight;
+                  }
+                } catch(e) {}
+                </script>""",
+                height=0
+            )
 
         # ─ Séparateur avant la zone de saisie ─
         st.markdown(
@@ -1224,43 +1244,36 @@ def main():
                         except Exception as e:
                             st.error(f"Erreur : {e}")
 
-        # ══════════════════════════════════════
-        # ZONE DE SAISIE STYLE DEEPSEEK
-        # ══════════════════════════════════════
-        st.markdown(
-            "<div style='margin-top:18px;border-top:1px solid #f1f5f9;padding-top:16px;'></div>",
-            unsafe_allow_html=True
-        )
+        # ── ZONE DE SAISIE (champ + bouton ↑) ──
+        st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
 
-        # Textarea + bouton ↑ côte à côte
+        # Clé dynamique → change à chaque nouveau message → champ redevient vide
+        _input_key = f"chat_input_{len(st.session_state.chat_history)}"
         _txt_col, _btn_col = st.columns([9, 1])
         with _txt_col:
             user_input = st.text_area(
-                "msg", value=st.session_state.betise,
-                placeholder="Écrivez votre message… (Bonjour / Mon fils Adam 5 ans touche les prises / ...)",
-                height=90, label_visibility="collapsed", key="main_input"
+                "msg",
+                placeholder="Écrivez votre message…",
+                height=90, label_visibility="collapsed",
+                key=_input_key
             )
-            if user_input != st.session_state.betise:
-                st.session_state.betise = user_input
         with _btn_col:
-            # Aligne le bouton avec le bas du textarea
-            st.markdown("<div style='margin-top:44px;'></div>",
-                        unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:44px;'></div>", unsafe_allow_html=True)
             send_clicked = st.button("↑", type="primary",
                                      use_container_width=True, key="btn_send_icon")
 
         if send_clicked:
+            msg_texte = st.session_state.get(_input_key, "").strip()
             if not st.session_state.api_key.strip():
                 st.error("⚠️ Clé API Groq manquante (barre latérale).")
-            elif not st.session_state.betise.strip():
+            elif not msg_texte:
                 st.error("⚠️ Écris ton message.")
             elif not _GROQ_OK:
                 st.error("La bibliothèque `groq` n'est pas installée.")
             else:
-                _now = _ts()
-                msg_texte = st.session_state.betise.strip()
+                st.session_state.betise = msg_texte
                 st.session_state.chat_history.append(
-                    {"role": "user", "content": msg_texte, "ts": _now})
+                    {"role": "user", "content": msg_texte, "ts": _ts()})
                 with st.spinner("🤖 L'IA réfléchit…"):
                     try:
                         res = chat_ai(msg_texte, st.session_state.api_key)
@@ -1275,6 +1288,7 @@ def main():
                     except Exception as e:
                         st.session_state.chat_history.pop()
                         st.error(f"Erreur API Groq : {e}")
+
 
 
         # ── SUGGESTIONS RAPIDES (chips) ──

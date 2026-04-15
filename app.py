@@ -1235,11 +1235,9 @@ def main():
                         _jc, _kc = st.columns([0.9, 10])
                         with _kc:
                             _sugg_to_show = _sugg[:3]
-                            _cc = st.columns(len(_sugg_to_show))
                             for _sid, _s in enumerate(_sugg_to_show):
-                                with _cc[_sid]:
-                                    if st.button(_s, key=f"enrich_{_sid}",
-                                                 use_container_width=True):
+                                if st.button(_s, key=f"enrich_{_sid}",
+                                             use_container_width=True):
                                         _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
                                         st.session_state.betise = _nm
                                         st.session_state.chat_history.append(

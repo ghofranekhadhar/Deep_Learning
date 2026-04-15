@@ -240,10 +240,10 @@ Exemples : "Mon fils fait des bêtises avec...", "Ma fille n'arrête pas de...",
   → Ta réponse : phrase de confirmation empathique courte.
 
 Règle 3 — MISES À JOUR ET CORRECTIONS (CRUCIAL) :
-Le message du parent contient tout l'historique des discussions concaténé. Les informations À LA FIN du message sont LES PLUS RÉCENTES ET LES PLUS IMPORTANTES.
-Si le parent corrige ou change une information à la fin (comme le prénom, l'âge, le genre ou le comportement), tu DOIS ABSOLUMENT ÉCRASER l'ancienne valeur et renvoyer la NOUVELLE valeur.
-Exemple : "Adam 5 ans tape, remplacer par 8 ans, le nom est Salma" → Tu dois renvoyer "Salma" et 8 ans, et totalement ignorer Adam et 5.
-Exemple : "Salma ? 8 ans" → Tu dois renvoyer "Salma" et 8 ans sans te poser de question.
+Le message du parent peut contenir la balise "[CORRECTION DU PARENT]". 
+Ce qui suit cette balise est la NOUVELLE consigne absolue. Tu DOIS écraser et remplacer l'ancien prénom, l'ancien âge, l'ancien genre ou l'ancien comportement par ce qui est dit dans la correction.
+Exemple : "... [CORRECTION DU PARENT] : Salma 8 ans" -> Renvoyer prénom "Salma" et âge 8. Oublier tout prénom ou âge précédent.
+Exemple : "... [CORRECTION DU PARENT] : c'est un garçon" -> Renvoyer genre "garçon".
 
 SUGGESTIONS D'ENRICHISSEMENT (Mode Scénario) : 
 Génère 3 suggestions COURTES et DIRECTEMENT utilisables par le parent pour ajouter du contexte.
@@ -278,8 +278,8 @@ def chat_ai(message: str, api_key: str, current_state: dict = None) -> dict:
     """Analyse le message et retourne type general/scenario/invalid + réponse."""
     prompt = CHAT_PROMPT.replace("{message}", message)
     if current_state and current_state.get("type") == "scenario":
-        prompt += f"\n\nÉTAT ACTUEL À METTRE À JOUR : Prénom='{current_state.get('prenom')}', Âge={current_state.get('age')}, Genre={current_state.get('genre')}"
-        prompt += "\nINSTRUCTION SPECIALE : Si le message du parent apporte une correction ou un nouveau prénom/âge/genre, applique absolument cette modification à l'état actuel et renvoie-le mis à jour de manière prioritaire."
+        prompt += f"\n\nÉTAT ACTUEL : Prénom='{current_state.get('prenom')}', Âge={current_state.get('age')}, Genre={current_state.get('genre')}"
+        prompt += "\n⚠️ INSTRUCTION SPECIALE : Tu dois utiliser ces valeurs de l'état actuel SAUF SI la balise [CORRECTION DU PARENT] vient les contredire. Dans ce cas, modifie l'état actuel et remplace-le obligatoirement par la correction."
         
     res = _call(api_key, prompt, 1500)
     if res.get("type") == "scenario":
@@ -1255,7 +1255,7 @@ def main():
                 st.error("La bibliothèque `groq` n'est pas installée.")
             else:
                 if st.session_state.val and st.session_state.val.get("type") == "scenario":
-                    full_msg = f"{st.session_state.betise.rstrip('.,!? ')}, {_msg}"
+                    full_msg = f"{st.session_state.betise.rstrip('.,!? ')}\n[CORRECTION DU PARENT] : {_msg}"
                 else:
                     full_msg = _msg
                     

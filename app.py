@@ -317,6 +317,10 @@ def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     p = p.replace("{age}", str(age))
     p = p.replace("{genre}", str(genre))
     p = p.replace("{hero}", str(hero))
+    
+    if hero and hero != "Par défaut":
+        p += f"\n\n🚨 INSTRUCTION ABSOLUE : Le parent a choisi le héros '{hero}'. Ce héros ({hero}) DOIT ÊTRE LE PERSONNAGE PRINCIPAL de l'histoire et de la chanson ! C'est {hero} qui fait la bêtise et qui apprend la leçon, PAS un personnage secondaire qui vient l'aider !"
+        
     return _call(api_key, p, 3000)
 
 def parse_scenario(d: dict) -> tuple:

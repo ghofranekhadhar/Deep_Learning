@@ -224,42 +224,44 @@ def validate_ai(betise: str, api_key: str) -> dict:
 #  CHAT PROMPT — conversation libre + détection scénario
 # ─────────────────────────────────────────
 CHAT_PROMPT = """
-Tu es un assistant pédagogique ultra-concis. Tu parles UNIQUEMENT français.
-Tu aides les PARENTS à corriger les comportements problématiques de leur enfant.
+Tu es un assistant pédagogique chaleureux et compréhensif. Tu parles UNIQUEMENT français.
+Tu aides les PARENTS avec l'éducation de leur enfant.
 
-Règle 1 — DÉTECTION (MODE SCÉNARIO) :
-Dès que le parent décrit un comportement CORRIGIBLE de son enfant :
-  - DANGEREUX : toucher prises, feu, couteaux, médicaments, piscine, route
-  - SOCIAL : frapper, mordre, crier, voler, mentir, désobéir, faire des caprices
-  - IRRESPECTUEUX : insulter, briser objets, refuser école
+Règle 1 — CONVERSATION GÉNÉRALE :
+Si le parent salue, pose une question, ou demande une explication, réponds TOUJOURS avec un ton adapté aux enfants, simple et éducatif. 
+Exemples : "Un danger, c'est quelque chose qui peut nous faire du mal...", "Bonjour ! Comment allez-vous aujourd'hui ?"
+Pas de limite de mots stricte, sois naturel et utile. Informe le parent que tu es là pour l'aider.
+
+Règle 2 — DÉTECTION (MODE SCÉNARIO) :
+Dès que le parent décrit N'IMPORTE QUELLE situation inquiétante, bêtise, ou comportement dangereux, ou demande de l'aide sur une action spécifique :
+Exemples : "Mon fils fait des bêtises avec...", "Ma fille n'arrête pas de...", "Mon enfant touche à...", "Que faire quand mon enfant...", "Aide-moi, mon petit..."
   → ACTIVE IMMÉDIATEMENT le mode scénario.
   → Prénom et âge sont OPTIONNELS (utilise "l'enfant" et 6 ans si absents).
-  → Ta réponse : UNE SEULE PHRASE de confirmation, max 12 mots. ZÉRO question.
+  → Ta réponse : phrase de confirmation empathique courte.
 
-Règle 2 — CONVERSATION : parent salue ou question générale
-  → 1 phrase max, orienter vers la description du comportement.
-
-SUGGESTIONS : 2 fragments courts DIRECTEMENT utilisables pour enrichir.
-  Exemples : "dès que j'ai le dos tourné", "malgré mes explications", "tous les jours"
+SUGGESTIONS D'ENRICHISSEMENT (Mode Scénario) : 
+Génère 3 suggestions COURTES et DIRECTEMENT utilisables par le parent pour ajouter du contexte.
+Exemples : "dès que j'ai le dos tourné", "il refuse de m'écouter", "ça arrive tous les jours"
 
 Réponds UNIQUEMENT en JSON valide sans markdown :
 
-Pour comportement corrigible :
-{{"type":"scenario","response":"Compris — je génère le scénario éducatif.",
+Pour comportement inquiétant/corrigible :
+{{"type":"scenario","response":"Bien compris ! Je vous prépare un scénario éducatif pour cette situation.",
 "valide":true,"raison":"",
 "prenom":"prénom ou l enfant","age":6,"genre":"garçon ou fille",
-"danger":"frappe amis","theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
-"comprehension":"Il frappe ses camarades de classe.",
+"danger":"description courte du comportement",
+"theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
+"comprehension":"Il fait [comportement].",
 "conseils":["conseil 1","conseil 2","conseil 3"],
-"message_parent":"Vous pouvez corriger ce comportement !",
-"suggestions":["malgré mes explications","tous les jours à l'école"]}}
+"message_parent":"Ne vous inquiétez pas, on va corriger ça ensemble !",
+"suggestions":["suggestion 1","suggestion 2","suggestion 3"]}}
 
-Pour question générale :
-{{"type":"general","response":"Bonjour ! Décrivez le comportement de votre enfant."}}
+Pour conversation générale :
+{{"type":"general","response":"ta réponse naturelle, simple, éducative et adaptée."}}
 
 Pour hors sujet :
 {{"type":"invalid","response":"Je suis spécialisé dans les comportements des enfants.",
-"suggestions":["Mon fils X ans frappe ses amis","Ma fille Y ans touche les prises"]}}
+"suggestions":["Mon enfant frappe ses amis","Ma fille touche les prises"]}}
 
 Message du parent : {message}
 """
@@ -1251,15 +1253,10 @@ def main():
                 "<div style='background:linear-gradient(135deg,#f0fdf4,#dcfce7);"
                 "border:1.5px solid #4ade80;border-radius:14px;"
                 "padding:14px 18px;margin-top:14px;'>"
-                "<div style='font-size:0.82rem;font-weight:700;color:#15803d;"
-                "text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;'>"
-                "✅ J'ai bien compris la situation</div>"
-                f"<div style='font-size:1rem;color:#14532d;font-weight:600;margin-bottom:4px;'>"
-                f"👶 {_v.get('prenom','?')} · {_v.get('age','')} ans</div>"
-                f"<div style='font-size:0.88rem;color:#166534;'>"
-                f"⚠️ <b>{_v.get('danger','')}</b><br>"
-                f"<span style='font-size:0.83rem;opacity:0.85;'>{_v.get('comprehension','')}</span>"
-                "</div>"
+                "<div style='font-size:0.9rem;font-weight:700;color:#15803d;margin-bottom:6px;'>"
+                f"📌 Scénario prêt : {_v.get('prenom','?')} · {_v.get('age','')} ans • {_v.get('danger','')}</div>"
+                f"<div style='font-size:0.88rem;color:#166534;opacity:0.85;'>"
+                f"{_v.get('comprehension','')}</div>"
                 "</div>",
                 unsafe_allow_html=True
             )
@@ -1272,8 +1269,9 @@ def main():
                     "margin:10px 0 5px;'>✨ Enrichir la situation :</div>",
                     unsafe_allow_html=True
                 )
-                _sc = st.columns(len(_sugg[:2]))
-                for _sid, _s in enumerate(_sugg[:2]):
+                _sugg_to_show = _sugg[:3]
+                _sc = st.columns(len(_sugg_to_show))
+                for _sid, _s in enumerate(_sugg_to_show):
                     with _sc[_sid]:
                         if st.button(f"+ {_s}", key=f"enrich_{_sid}",
                                      use_container_width=True):
@@ -1298,28 +1296,45 @@ def main():
                                     st.error(f"Erreur : {_e}")
                             st.rerun()
 
-            # ── Bouton Générer vidéo (TRÈS visible) ──
+            # ── Boutons Actions ──
             st.markdown("<div style='margin-top:12px;'></div>", unsafe_allow_html=True)
-            if st.button(
-                "🎬  GÉNÉRER LE DESSIN ANIMÉ ÉDUCATIF  →",
-                type="primary", use_container_width=True, key="btn_gen_video"
-            ):
-                with st.spinner("🎵 Création du scénario animé…"):
-                    try:
-                        _data = scenario_ai(
-                            st.session_state.betise, _v, st.session_state.api_key)
-                        st.session_state.scenario = _data
-                        _ch, _sg, _nar, _ipr = parse_scenario(_data)
-                        st.session_state.char  = _ch
-                        st.session_state.song  = _sg
-                        st.session_state.narrations  = _nar
-                        st.session_state.img_prompts = _ipr
-                        st.session_state.step = 2
-                        st.rerun()
-                    except json.JSONDecodeError:
-                        st.error("Format JSON invalide.")
-                    except Exception as _e:
-                        st.error(f"Erreur : {_e}")
+            _bg1, _bg2 = st.columns([3, 1])
+            with _bg1:
+                if st.button(
+                    "🎬  GÉNÉRER LE DESSIN ANIMÉ ÉDUCATIF !",
+                    type="primary", use_container_width=True, key="btn_gen_video"
+                ):
+                    with st.spinner("🎵 Création du scénario animé…"):
+                        try:
+                            _data = scenario_ai(
+                                st.session_state.betise, _v, st.session_state.api_key)
+                            st.session_state.scenario = _data
+                            _ch, _sg, _nar, _ipr = parse_scenario(_data)
+                            st.session_state.char  = _ch
+                            st.session_state.song  = _sg
+                            st.session_state.narrations  = _nar
+                            st.session_state.img_prompts = _ipr
+                            st.session_state.step = 2
+                            st.rerun()
+                        except json.JSONDecodeError:
+                            st.error("Format JSON invalide.")
+                        except Exception as _e:
+                            st.error(f"Erreur : {_e}")
+            with _bg2:
+                if st.button("🔄 Réinterpréter", use_container_width=True, key="btn_reinterp"):
+                    with st.spinner("🤖 Nouvelle réflexion…"):
+                        try:
+                            _r3 = chat_ai(st.session_state.betise, st.session_state.api_key)
+                            reply3 = _r3.get("response", "")
+                            st.session_state.chat_history.append(
+                                {"role":"ai", "content":reply3, "ts":_ts()}
+                            )
+                            st.session_state.val = _r3 if _r3.get("type")=="scenario" else None
+                            if _r3.get("theme") in THEMES:
+                                st.session_state.theme = _r3["theme"]
+                            st.rerun()
+                        except Exception as _e:
+                            st.error(f"Erreur : {_e}")
         else:
             # Pas encore de scénario détecté : invite + bouton grisé
             st.markdown(

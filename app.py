@@ -1240,10 +1240,16 @@ def main():
                             for _sid, _s in enumerate(_sugg_to_show):
                                 if st.button(_s, key=f"enrich_{_sid}",
                                              use_container_width=True):
-                                        _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
-                                        st.session_state.betise = _nm
+                                        import html as _html
+                                        _s_clean = _html.unescape(_s)
+                                        # Seulement afficher la suggestion propre dans la petite bulle (pas tout l'historique)
                                         st.session_state.chat_history.append(
-                                            {"role": "user", "content": _nm, "ts": _ts()})
+                                            {"role": "user", "content": _s_clean, "ts": _ts()})
+                                        
+                                        # Construire la consigne de fond pour l'IA
+                                        _nm = f"{st.session_state.betise.rstrip('.,!? ')}\n[CORRECTION DU PARENT] : {_s_clean}"
+                                        st.session_state.betise = _nm
+                                        
                                         with st.spinner("🤖 Mise à jour du scénario…"):
                                             try:
                                                 _r2 = chat_ai(_nm, st.session_state.api_key, st.session_state.val)

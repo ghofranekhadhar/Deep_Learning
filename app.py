@@ -1225,15 +1225,18 @@ def main():
                     _sugg = _lv.get("suggestions", [])
                     if _sugg:
                         st.markdown(
-                            "<div style='font-size:0.78rem;font-weight:600;color:#64748b;"
-                            "margin:10px 0 5px 15px;'>✨ Enrichir la situation :</div>",
+                            "<div style='display:flex;align-items:center;margin:12px 15px 8px;'>"
+                            "<div style='font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;'>"
+                            "✨ Suggestions d'enrichissement</div>"
+                            "<div style='flex-grow:1;height:1px;background:#f1f5f9;margin-left:10px;'></div>"
+                            "</div>",
                             unsafe_allow_html=True
                         )
                         _sugg_to_show = _sugg[:3]
                         _sc = st.columns([1]*len(_sugg_to_show))
                         for _sid, _s in enumerate(_sugg_to_show):
                             with _sc[_sid]:
-                                if st.button(f"+ {_s}", key=f"enrich_{_sid}",
+                                if st.button(f"💡 {_s}", key=f"enrich_{_sid}",
                                              use_container_width=True):
                                     _nm = (st.session_state.betise.rstrip(".,!? ") + ", " + _s).strip()
                                     st.session_state.betise = _nm

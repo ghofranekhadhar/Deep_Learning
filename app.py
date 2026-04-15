@@ -95,6 +95,10 @@ THEMES = {
         "sky_n":((255,180,100),(255,210,150)),"sky_d":((200,50,0),(140,30,0)),"sky_g":((255,160,40),(255,200,90)),
         "gnd":(70,160,70),"gnds":(50,120,50),"fx":(255,80,0),"wall":(255,220,195),
         "desc":"Cuisine avec gaz, flammes rouges dramatiques"},
+    "behaviour":{"label":"🤝 Comportement","emoji":"🤝","color":"#f59e0b",
+        "sky_n":((255,230,160),(255,245,200)),"sky_d":((200,100,30),(140,70,20)),"sky_g":((255,200,80),(255,230,120)),
+        "gnd":(80,170,80),"gnds":(55,130,55),"fx":(255,190,0),"wall":(255,245,220),
+        "desc":"Classe d'école ou cour de récréation, enfants qui jouent"},
     "general":{"label":"🌟 Général","emoji":"🌟","color":"#6366f1",
         "sky_n":((100,160,255),(200,230,255)),"sky_d":((220,80,50),(150,60,40)),"sky_g":((255,180,60),(255,220,120)),
         "gnd":(70,175,70),"gnds":(50,130,50),"fx":(255,200,0),"wall":(255,235,210),
@@ -108,6 +112,7 @@ EXAMPLES = [
     {"icon":"🏊","label":"Piscine","text":"Ma fille Lina, 4 ans, s'approche seule du bord de la piscine","theme":"pool"},
     {"icon":"🚗","label":"Traverser la rue","text":"Mon fils Rayan, 6 ans, traverse la rue sans regarder","theme":"road"},
     {"icon":"🔥","label":"Feu / Gaz","text":"Ma fille Sara, 5 ans, allume les boutons du gaz","theme":"fire"},
+    {"icon":"🤝","label":"Frappe ses amis","text":"Mon fils Omar, 5 ans, frappe ses camarades de classe","theme":"behaviour"},
 ]
 
 # ─────────────────────────────────────────
@@ -219,43 +224,42 @@ def validate_ai(betise: str, api_key: str) -> dict:
 #  CHAT PROMPT — conversation libre + détection scénario
 # ─────────────────────────────────────────
 CHAT_PROMPT = """
-Tu es un assistant pédagogique chaleureux et professionnel, spécialisé dans la sécurité
-et l'éducation des enfants de 3 à 8 ans. Tu parles UNIQUEMENT français.
+Tu es un assistant pédagogique ultra-concis. Tu parles UNIQUEMENT français.
+Tu aides les PARENTS à corriger les comportements problématiques de leur enfant.
 
-CONTEXTE IMPORTANT : Tu parles TOUJOURS à un PARENT à propos de SON ENFANT spécifique.
-Tu ramenes TOUJOURS vers l'éducation, la sécurité infantile et les comportements dangereux.
+Règle 1 — DÉTECTION (MODE SCÉNARIO) :
+Dès que le parent décrit un comportement CORRIGIBLE de son enfant :
+  - DANGEREUX : toucher prises, feu, couteaux, médicaments, piscine, route
+  - SOCIAL : frapper, mordre, crier, voler, mentir, désobéir, faire des caprices
+  - IRRESPECTUEUX : insulter, briser objets, refuser école
+  → ACTIVE IMMÉDIATEMENT le mode scénario.
+  → Prénom et âge sont OPTIONNELS (utilise "l'enfant" et 6 ans si absents).
+  → Ta réponse : UNE SEULE PHRASE de confirmation, max 12 mots. ZÉRO question.
 
-Règle 1 — CONVERSATION : réponds chaleureusement ET oriente vers l'éducation sécurité.
+Règle 2 — CONVERSATION : parent salue ou question générale
+  → 1 phrase max, orienter vers la description du comportement.
 
-Règle 2 — MODE SCÉNARIO : Si le parent décrit un comportement DANGEREUX ou INTERDIT d'un
-  enfant (prénom + âge) ou ENRICHIT un scénario existant ("malgré mes refus",
-  "plusieurs fois", "il recommence", etc.) → active le mode scénario.
-
-Pour les SUGGESTIONS : génère 2 phrases complètes que le parent peut utiliser TELLES QUELLES
-  pour enrichir sa description. Exemples de format :
-  - "malgré mes refus répétés"
-  - "il recommence dès que j'ai le dos tourné"
-  - "il a déjà failli se blesser"
-  - "plusieurs fois par jour"
-  Ces suggestions doivent être courtes, concrètes, et DIRECTEMENT utilisables.
+SUGGESTIONS : 2 fragments courts DIRECTEMENT utilisables pour enrichir.
+  Exemples : "dès que j'ai le dos tourné", "malgré mes explications", "tous les jours"
 
 Réponds UNIQUEMENT en JSON valide sans markdown :
 
-Pour conversation normale :
-{{"type":"general","response":"ta réponse naturelle centrée sur l'enfant et l'éducation"}}
-
-Pour scénario éducatif :
-{{"type":"scenario","response":"réponse naturelle qui confirme et encourage",
-"valide":true,"raison":"","prenom":"prénom","age":5,"genre":"garçon ou fille",
-"danger":"3 mots max","theme":"electric|kitchen|meds|pool|road|fire|general",
-"comprehension":"phrase complète décrivant le comportement de l'enfant",
+Pour comportement corrigible :
+{{"type":"scenario","response":"Compris — je génère le scénario éducatif.",
+"valide":true,"raison":"",
+"prenom":"prénom ou l enfant","age":6,"genre":"garçon ou fille",
+"danger":"frappe amis","theme":"electric|kitchen|meds|pool|road|fire|behaviour|general",
+"comprehension":"Il frappe ses camarades de classe.",
 "conseils":["conseil 1","conseil 2","conseil 3"],
-"message_parent":"message encourageant",
-"suggestions":["phrase courte enrichissement 1","phrase courte enrichissement 2"]}}
+"message_parent":"Vous pouvez corriger ce comportement !",
+"suggestions":["malgré mes explications","tous les jours à l'école"]}}
 
-Pour message hors sujet :
-{{"type":"invalid","response":"explication polie puis ramene vers l'éducation",
-"suggestions":["Mon fils X ans fait...","Ma fille Y ans touche..."]}}
+Pour question générale :
+{{"type":"general","response":"Bonjour ! Décrivez le comportement de votre enfant."}}
+
+Pour hors sujet :
+{{"type":"invalid","response":"Je suis spécialisé dans les comportements des enfants.",
+"suggestions":["Mon fils X ans frappe ses amis","Ma fille Y ans touche les prises"]}}
 
 Message du parent : {message}
 """

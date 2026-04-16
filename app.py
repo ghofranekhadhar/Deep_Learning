@@ -124,7 +124,7 @@ Analyse cette phrase parentale et réponds UNIQUEMENT en JSON valide sans markdo
   "valide": true,
   "raison": "courte explication",
   "prenom": "prénom ou null",
-  "age": 5,
+  "age": "âge (nombre entier) ou null",
   "genre": "garçon ou fille",
   "danger": "type danger 3 mots",
   "theme": "electric|kitchen|meds|pool|road|fire|general",
@@ -141,21 +141,14 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","hero":"{hero}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
-  "Scène 1 Introduction : Voix de conteur joyeux ! (ex: 'Coucou ! Voici le super {prenom} !')",
-  "Scène 2 Vie normale : Phrase très rythmée et amusante sur l'activité en cours",
-  "Scène 3 Découverte : Mystère et suspense... (ex: 'Oh là là... mais qu'est-ce que c'est que ça ?')",
-  "Scène 4 Tentation : Très curieux (ex: 'Mmmh, c'est très tentant de s'approcher...')",
-  "Scène 5 Hésitation : 'Faut-il le faire ? Sûrement pas !'",
-  "Scène 6 Danger : ALERTE ! Gros avertissement avec onomatopée ! (ex: 'ATTENTION ! C'est super dangereux !')",
-  "Scène 7 Erreur : Suspens dramatique... 'Mais {prenom} n'écoute pas...' ",
-  "Scène 8 Action (la bêtise) : Hop ! Il fait la bêtise !",
-  "Scène 9 Conséquence immédiate : BOUM / AÏE ! Exclamation vive (ex: 'Aïe aïe aïe ! Ça fait très mal !')",
-  "Scène 10 Peur/Douleur : 'Au secours !' {prenom} a eu très peur ! ",
-  "Scène 11 Leçon (Pourquoi) : Explication claire et douce de conteur : L'acte a causé ce mal",
-  "Scène 12 Explication : 'Voilà pourquoi c'est interdit !'",
-  "Scène 13 Compréhension : {prenom} comprend son erreur et regrette sincèrement",
-  "Scène 14 Promesse : Promesse solennelle ('Promis, je ne le ferai plus jamais !')",
-  "Scène 15 Conclusion : Et toi, sois très prudent ! À bientôt !"
+  "Scène 1 Introduction (Accroche chaleureuse) : Souhaite un joyeux bonjour à l'enfant (utilise son prénom) d'une façon très dynamique et complice ! Annonce-lui qu'aujourd'hui, tu vas lui raconter une histoire fascinante sur son ami [Nom du héros, ou un prénom par défaut s'il n'y a pas de héros] ! Varie ton approche à chaque histoire.",
+  "Scène 2 à 4 (Innocence et jeu) : Laisse ton imagination créer 3 phrases très créatives, différentes et amusantes décrivant le jeu actuel de l'enfant de façon très vivante !",
+  "Scène 5 à 7 (La curiosité et la tentation) : Invente un développement narratif original où l'enfant est attiré par le danger. Change le type de suspense à chaque nouvelle histoire.",
+  "Scène 8 (Le point de bascule) : Décris le moment fatidique où le personnage commet l'action imprudente. Utilise un ton théâtral et saisissant pour souligner la gravité de l'interdit franchi.",
+  "Scène 9 à 11 (Le contrecoup et la prise de conscience) : Raconte la conséquence immédiate de l'interdit de façon réaliste et émouvante. Exprime la peur ou la tristesse ressentie avec des mots justes et adaptés à la situation, pour que l'enfant comprenne la réalité du danger.",
+  "Scène 12 à 13 (L'apprentissage) : Le conteur explique pourquoi c'est interdit avec une analogie amusante ou une explication très créative et différente à chaque fois.",
+  "Scène 14 (La décision) : L'enfant prend une décision forte de ne plus recommencer.",
+  "Scène 15 Conclusion (Leçon finale marquante) : Adresse-toi directement à l'enfant avec bienveillance. Rappelle-lui que cette bêtise est très dangereuse à cause de [conséquence terrible], mais finis de façon très positive et valorisante, en lui disant que tu as confiance en lui car il est très intelligent !"
 ],
 "image_prompts":[
   "Describe scene 1 background in English (e.g. colorful living room)",
@@ -384,7 +377,7 @@ DECOR_LABELS = {
     "bain":    "🛁 Salle de bain",
 }
 
-def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list) -> List[Scene]:
+def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list, dframes: list) -> List[Scene]:
     p = char.prenom; f = Cfg.FPS
     dm = {"electric": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
           "kitchen":  ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
@@ -395,21 +388,21 @@ def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img
     n = narrations  # alias court
     ip = img_prompts
     return [
-        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  f*5,  "day",    "intro", ip[0]),
-        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  f*5,  "day",    "acte1", ip[1]),
-        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  f*4,  "golden", "acte1", ip[2]),
-        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  f*5,  "golden", "acte2", ip[3]),
-        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  f*4,  "golden", "acte2", ip[4]),
-        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  f*5,  "day",    "refrain1", ip[5]),
-        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  f*4,  "day",    "refrain1", ip[6]),
-        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  f*6,  "dusk",   "acte3", ip[7]),
-        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  f*6,  "dusk",   "acte4", ip[8]),
-        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  f*5,  "dusk",   "acte4", ip[9]),
-        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], f*5,  "day",    "refrain2", ip[10]),
-        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], f*6,  "day",    "acte5", ip[11]),
-        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], f*5,  "day",    "acte6", ip[12]),
-        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], f*5,  "day",    "outro", ip[13]),
-        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], f*4,  "day",    "outro", ip[14]),
+        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  dframes[0],  "day",    "intro", ip[0]),
+        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  dframes[1],  "day",    "acte1", ip[1]),
+        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  dframes[2],  "golden", "acte1", ip[2]),
+        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  dframes[3],  "golden", "acte2", ip[3]),
+        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  dframes[4],  "golden", "acte2", ip[4]),
+        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  dframes[5],  "day",    "refrain1", ip[5]),
+        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  dframes[6],  "day",    "refrain1", ip[6]),
+        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  dframes[7],  "dusk",   "acte3", ip[7]),
+        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  dframes[8],  "dusk",   "acte4", ip[8]),
+        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  dframes[9],  "dusk",   "acte4", ip[9]),
+        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], dframes[10],  "day",    "refrain2", ip[10]),
+        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], dframes[11],  "day",    "acte5", ip[11]),
+        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], dframes[12],  "day",    "acte6", ip[12]),
+        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], dframes[13],  "day",    "outro", ip[13]),
+        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], dframes[14],  "day",    "outro", ip[14]),
     ]
 
 # ─────────────────────────────────────────
@@ -417,7 +410,7 @@ def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img
 # ─────────────────────────────────────────
 class P:
     SKIN=(255,232,205);CHEEK=(255,175,165);HAIR_B=(55,38,18);HAIR_G=(195,135,70)
-    SHIRT_B=(70,130,255);SHIRT_G=(255,120,175);PANTS=(45,85,195);SHOE=(175,48,48)
+    SHIRT_B=(135,206,235);SHIRT_G=(255,20,147);PANTS=(45,85,195);SHOE=(175,48,48)
     EYE_B=(80,160,255);EYE_G=(255,100,195);WHITE=(255,255,255);OUTLINE=(30,20,10)
     SUN=(255,245,100);TEAR=(90,195,255);FLAME_C=(255,230,80)
     ROOF=(185,80,60);DOOR=(110,65,35);WINDOW=(180,220,255)
@@ -489,7 +482,7 @@ def anim_off(action,frame):
     return 0,int(3*math.sin(frame*.07))
 
 def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
-    S=Cfg.SIZE; dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
+    S=int(Cfg.SIZE * 0.75); dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
     shirt=P.SHIRT_G if genre=="fille" else P.SHIRT_B
     hair=P.HAIR_G if genre=="fille" else P.HAIR_B
     eye_c=P.EYE_G if genre=="fille" else P.EYE_B
@@ -589,7 +582,10 @@ def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
     draw.ellipse([x-int(S*.076),ey+5,x-int(S*.044),ey+20],fill=P.CHEEK)
     draw.ellipse([x+int(S*.044),ey+5,x+int(S*.076),ey+20],fill=P.CHEEK)
     my2=hy+int(S*.096)
-    if emotion in("heureux","fier","determine"): draw.arc([x-10,my2-5,x+10,my2+8],0,180,fill=(185,65,65),width=3)
+    is_talking = (frame % 20) < 10
+    mouth_h = 4 + int(6 * abs(math.sin(frame * 0.5))) if is_talking else 2
+    if is_talking: draw.ellipse([x-4, my2-2, x+4, my2+mouth_h], fill=(80,10,10))
+    elif emotion in("heureux","fier","determine"): draw.arc([x-10,my2-5,x+10,my2+8],0,180,fill=(185,65,65),width=3)
     elif emotion in("triste","desole"): draw.arc([x-10,my2+5,x+10,my2+14],180,0,fill=(178,65,65),width=3)
     elif emotion in("surpris","effraye"): draw.ellipse([x-9,my2-2,x+9,my2+14],fill=(135,48,48))
     else: draw.line([x-7,my2+6,x+7,my2+6],fill=(168,68,68),width=2)
@@ -615,12 +611,7 @@ def get_fonts():
         d=ImageFont.load_default(); _FONTS={"big":d,"med":d,"small":d}
     return _FONTS
 
-def song_line(song,part):
-    text=getattr(song,part,"")
-    for sep in["...","!","."]:
-        idx=text.find(sep)
-        if idx>15: return text[:idx].strip()
-    return text[:48].strip()
+
 
 def wrap_text(text: str, max_chars: int) -> list:
     """Coupe le texte en lignes de max_chars caractères."""
@@ -686,12 +677,14 @@ def draw_ui(img, scene, f_in, song, genre):
 
     y0 = S - bot_h + 6
 
-    # ♪ Parole de chanson — italique violet clair
-    sl = song_line(song, scene.song_part)
+    # ♪ Parole de chanson — italique violet clair, phrase complète
+    sl = getattr(song, scene.song_part, "")
     if sl:
-        disp = sl[:44] + "…" if len(sl) > 46 else sl
-        draw.text((12, y0), f"♪ {disp}", fill=(180, 155, 255), font=F["small"])
-        y0 += 20
+        sl_lines = wrap_text(sl, 45)[:2]
+        for sl_line in sl_lines:
+            draw.text((12, y0), f"♪ {sl_line}", fill=(180, 155, 255), font=F["small"])
+            y0 += 16
+        y0 += 4
 
     # Ligne séparatrice
     draw.line([(12, y0), (S - 12, y0)], fill=(80, 60, 160), width=1)
@@ -765,56 +758,61 @@ async def _edge_gen(text,voice,rate,pitch,out):
     comm=edge_tts.Communicate(text=text,voice=voice,rate=rate,pitch=pitch)
     await comm.save(out)
 
-def gen_audio(char,song,folder,ph)->str:
-    secs=[song.intro,"...",song.acte1,"...",song.acte2,"...",song.refrain1,"...",
-          song.acte3,"...",song.acte4,"...",song.refrain2,"...",song.acte5,"...",
-          song.acte6,"...",song.outro,"...",song.refrain2]
-    txt="  ".join(secs)
+def gen_audio(char, narrations, folder, ph) -> tuple:
     voice=Cfg.VF if char.genre=="fille" else Cfg.VG
-    vp=os.path.join(folder,"voix.mp3"); ok=False
-    if _EDGE_TTS_OK:
-        try:
-            ph.info("🎙️ Génération voix neurale..."); asyncio.run(_edge_gen(txt,voice,Cfg.VRATE,Cfg.VPITCH,vp)); ok=True
-        except Exception as e: st.warning(f"edge-tts: {e} → gTTS")
-    if not ok:
-        ph.info("🎙️ Génération voix..."); gTTS(text=txt,lang="fr",slow=True).save(vp)
+    from pydub import AudioSegment
+    import os, time
+    
+    combined_voix = AudioSegment.silent(duration=0)
+    durees_frames = []
+    vp=os.path.join(folder,"voix.mp3")
+    
+    ph.info("🎙️ Génération voix et synchro scène par scène...")
+    for idx, text in enumerate(narrations):
+        # Nettoyer texte des préfixes
+        if "]" in text: text = text.split("]", 1)[-1].strip()
+        if ":" in text: text = text.split(":", 1)[-1].strip()
         
+        part_path = os.path.join(folder, f"part_{idx}.mp3")
+        ok = False
+        if _EDGE_TTS_OK:
+            try:
+                import edge_tts, asyncio
+                asyncio.run(_edge_gen(text,voice,Cfg.VRATE,Cfg.VPITCH,part_path))
+                ok = True
+            except: pass
+        if not ok:
+            from gtts import gTTS
+            gTTS(text=text,lang="fr",slow=False).save(part_path)
+            
+        seg = AudioSegment.from_file(part_path)
+        # 500ms pause
+        seg = seg + AudioSegment.silent(duration=500)
+        combined_voix += seg
+        
+        dframes = int((len(seg) / 1000.0) * Cfg.FPS)
+        durees_frames.append(dframes)
+        
+    combined_voix.export(vp, format="mp3")
+    
     try:
-        ph.info("🎵 Ajout d'une musique douce en fond...")
-        from pydub import AudioSegment
+        ph.info("🎵 Mixage dynamique de l'ambiance...")
         import urllib.request
-        
-        # Lien vers une musique d'ambiance libre de droits et relaxante
         bgm_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
         bgm_path = os.path.join(folder, "bgm.mp3")
-        
         req = urllib.request.Request(bgm_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=15) as resp, open(bgm_path, 'wb') as f:
             f.write(resp.read())
             
-        voix_audio = AudioSegment.from_file(vp)
-        music_audio = AudioSegment.from_file(bgm_path)
-        
-        # Baisser fortement le volume de la musique (-15 décibels) pour entendre la voix
-        music_audio = music_audio - 15
-        
-        # Si la voix est plus longue que la musique, on répète la boucle musicale
-        while len(music_audio) < len(voix_audio):
-            music_audio += music_audio
-            
-        # Couper la musique exactement à la fin de la voix
-        music_audio = music_audio[:len(voix_audio)]
-        
-        # Mixer (superposer) les deux pistes
-        mix = voix_audio.overlay(music_audio)
-        
+        music_audio = AudioSegment.from_file(bgm_path) - 15
+        while len(music_audio) < len(combined_voix): music_audio += music_audio
+        music_audio = music_audio[:len(combined_voix)]
+        mix = combined_voix.overlay(music_audio)
         vp_mix = os.path.join(folder, "voix_mix.mp3")
         mix.export(vp_mix, format="mp3")
-        return vp_mix
-        
+        return vp_mix, durees_frames
     except Exception as e:
-        # En cas d'erreur internet sur la musique, on retourne la voix seule.
-        return vp
+        return vp, durees_frames
 
 def encode_video(frames,audio,folder,prenom)->str:
     silent=os.path.join(folder,"_s.mp4"); final=os.path.join(folder,f"ANIME_{prenom.upper()}.mp4")
@@ -1542,37 +1540,68 @@ def main():
         if not char or not song:
             st.error("Données manquantes."); st.session_state.step=1; st.rerun()
 
-        # Carte personnage
-        st.markdown(f"""<div class="card-accent">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <div style="width:60px;height:60px;border-radius:50%;
+        # En-tête professionnel (Cadre haut)
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+                    border-radius: 16px; padding: 24px; color: white; display: flex; 
+                    align-items: center; gap: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-bottom: 24px;">
+            <div style="width:80px;height:80px;border-radius:50%;
                  background:linear-gradient(135deg,{t['color']},#ec4899);
                  display:flex;align-items:center;justify-content:center;
-                 font-size:1.8rem;flex-shrink:0;">
+                 font-size:2.5rem;flex-shrink:0; border: 3px solid rgba(255,255,255,0.2);">
                  {'👧'if char.genre=='fille'else'👦'}</div>
-            <div style="flex:1;min-width:140px;">
-                <div style="font-size:1.4rem;font-weight:800;color:#0f172a;">{char.prenom}</div>
-                <div style="font-size:.85rem;color:#64748b;">{char.age} ans · {char.genre}</div>
-                <div style="margin-top:6px;">
-                    <span class="danger-pill">⚠️ {data.get('danger_court','')}</span>
-                    <span class="char-pill">{t['label']}</span>
+            <div style="flex:1;">
+                <div style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.1em; color:#94a3b8; font-weight:700;">Protagoniste & Cadre</div>
+                <div style="font-size:1.8rem;font-weight:800;color:#f8fafc; margin-bottom: 4px;">{char.prenom} <span style="font-size:1.1rem; color:#cbd5e1; font-weight:500;">({char.age} ans)</span></div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+                    <span style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); border-radius: 99px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; color: #fca5a5;">⚠️ Danger : {data.get('danger_court','')}</span>
+                    <span style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); border-radius: 99px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; color: #a5b4fc;">🎨 Ambiance : {data.get('ambiance_couleur','')}</span>
                 </div>
             </div>
-            <div style="flex:1;min-width:180px;background:#f8fafc;border-radius:10px;
-                 padding:10px;border:1px solid #e2e8f0;">
-                <span class="sec-label">🎨 Décor &amp; Ambiance</span>
-                <div style="font-size:.85rem;color:#374151;">{data.get('decor_principal','')}</div>
-                <div style="font-size:.8rem;color:{t['color']};font-weight:700;margin-top:3px;">
-                    🎨 {data.get('ambiance_couleur','')}</div>
+            <div style="flex:1; min-width: 200px; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">🎵 Thème Musical</div>
+                <div style="font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-top: 4px;">{song.titre}</div>
             </div>
         </div>
-        <div style="margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;">
-            <span style="font-size:.85rem;font-weight:700;color:#4f46e5;">🎵 {song.titre}</span>
-        </div>
-        </div>""",unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-        # Chanson
-        with st.expander("🎵 Voir la chanson complète générée",expanded=False):
+        st.markdown("<h3 style='font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 16px;'>🎬 Démarche du scénario (Aperçu des scènes)</h3>", unsafe_allow_html=True)
+
+        # Storyboard visuel complet
+        scenes_titles = ["1. Introduction", "2. La vie normale", "3. Découverte", "4. Tentation", "5. Hésitation",
+                         "6. ⚠️ DANGER", "7. Suspense...", "8. 💥 L'ACTION", "9. Aïe aïe aïe!", "10. Peur",
+                         "11. Pourquoi?", "12. Explication", "13. Compréhension", "14. Promesse", "15. Conclusion"]
+        
+        narrations = st.session_state.narrations
+        
+        timeline_html = "<div style='display:flex; flex-direction:column; gap: 10px; margin-bottom: 24px;'>"
+        for idx in range(min(15, len(narrations))):
+            scene_tit = scenes_titles[idx] if idx < len(scenes_titles) else f"Scène {idx+1}"
+            narr_text = narrations[idx]
+            
+            # Couleurs dynamiques selon l'intensité narrative
+            if idx in [5, 7, 8]:
+                border_color = "#ef4444" # Rouge (Action/Danger)
+                bg_color = "#fef2f2"
+            elif idx in [10, 11, 12]:
+                border_color = "#22c55e" # Vert (Leçon/Compréhension)
+                bg_color = "#f0fdf4"
+            else:
+                border_color = "#6366f1" # Bleu (Normal)
+                bg_color = "#f8fafc"
+                
+            timeline_html += f"""
+            <div style="border: 1px solid #e2e8f0; border-left: 5px solid {border_color}; background: {bg_color}; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">{scene_tit}</div>
+                <div style="font-size: 0.95rem; font-weight: 500; color: #1e293b; font-style: italic;">💬 "{narr_text}"</div>
+            </div>
+            """
+        timeline_html += "</div>"
+        
+        st.markdown(timeline_html, unsafe_allow_html=True)
+        
+        # Chanson dans l'expander (replié par défaut pour plus de propreté)
+        with st.expander("🎵 Voir les paroles complètes de la chanson", expanded=False):
             for lbl,txt in [
                 ("🎵 Introduction",song.intro),("📖 Acte I — Vie normale",song.acte1),
                 ("😮 Acte II — La tentation",song.acte2),("🚨 Refrain 1 — Avertissement",song.refrain1),
@@ -1581,19 +1610,6 @@ def main():
                 ("🤝 Acte VI — La promesse",song.acte6),("🫵 Message final",song.outro)]:
                 st.markdown(f'<div class="song-blk"><div class="song-lbl">{lbl}</div>'
                     f'<div class="song-txt">{txt}</div></div>',unsafe_allow_html=True)
-
-        # Aperçu scènes
-        sc_prev=[("🏠","Intro"),("🌳","Acte I"),("😮","Acte II"),("🚨","Refrain"),
-                 ("⚠️","Acte III"),("💥","Acte IV"),("💡","Refrain"),("😢","Acte V"),
-                 ("🤝","Acte VI"),("🎉","Fin")]
-        cols5=st.columns(5)
-        for i,(ic,nm) in enumerate(sc_prev):
-            with cols5[i%5]:
-                st.markdown(f'<div style="background:#f8fafc;border:1px solid #e2e8f0;'
-                    f'border-radius:10px;padding:10px 4px;text-align:center;margin-bottom:6px;">'
-                    f'<div style="font-size:1.3rem;">{ic}</div>'
-                    f'<div style="font-size:.64rem;font-weight:700;color:#64748b;margin-top:3px;">{nm}</div>'
-                    f'</div>',unsafe_allow_html=True)
 
         st.markdown("<br>",unsafe_allow_html=True)
         cb,cg=st.columns([1,2])
@@ -1625,41 +1641,42 @@ def main():
         </div>""",unsafe_allow_html=True)
 
         with st.status("⚙️ Génération en cours...",expanded=True) as status:
-            scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts)
-            
-            st.write("🖼️ Génération des décors avec l'IA (Images)...")
-            import urllib.request, urllib.parse
-            import time
-            pb_bg = st.progress(0, text="Téléchargement garanti des images IA (cela prendra environ 1 minute)…")
-            for i, scene in enumerate(scenes):
-                # On s'assure d'obtenir une image générée par l'IA (pollinations) pour chaque scène
-                image_recue = False
-                for tentatives in range(10): # On insiste jusqu'à 10 fois pour éviter le fond basique
-                    try:
-                        prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
-                        url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
-                        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-                        with urllib.request.urlopen(req, timeout=10) as resp:
-                            scene.bg_img = Image.open(resp).convert("RGBA").resize((Cfg.SIZE, Cfg.SIZE))
-                            image_recue = True
-                            break
-                    except Exception as e:
-                        time.sleep(1.5) # Le serveur bloque ? On attend 1.5s et on recommence.
-                
-                if not image_recue:
-                    scene.bg_img = None
-                pb_bg.progress((i+1)/len(scenes), text=f"Décor IA {i+1}/{len(scenes)}")
-
-            st.write("🎨 Rendu vidéo frame par frame...")
-            pb=st.progress(0,text="Démarrage…")
-            frames=render_all(scenes,char.genre,song,td,pb)
-
-            st.write("🎙️ Génération de la voix…")
-            aph=st.empty()
+            aph = st.empty()
             with tempfile.TemporaryDirectory() as tmpdir:
-                audio=gen_audio(char,song,tmpdir,aph); aph.empty()
+                audio_path, durees_frames = gen_audio(char, st.session_state.narrations, tmpdir, aph)
+                aph.empty()
+                
+                # Check list is complete for safety
+                if not durees_frames or len(durees_frames) < 15:
+                    durees_frames = [int(Cfg.FPS*5)] * 15
+                    
+                scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts, durees_frames)
+                
+                st.write("🖼️ Génération des décors avec l'IA...")
+                import urllib.request, urllib.parse, time
+                pb_bg = st.progress(0, text="Téléchargement des images IA…")
+                for i, scene in enumerate(scenes):
+                    image_recue = False
+                    for tentatives in range(10):
+                        try:
+                            prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
+                            url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
+                            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(req, timeout=10) as resp:
+                                scene.bg_img = Image.open(resp).convert("RGBA").resize((Cfg.SIZE, Cfg.SIZE))
+                                image_recue = True
+                                break
+                        except Exception as e:
+                            time.sleep(1.5)
+                    if not image_recue: scene.bg_img = None
+                    pb_bg.progress((i+1)/len(scenes), text=f"Décor IA {i+1}/{len(scenes)}")
+
+                st.write("🎨 Rendu vidéo frame par frame...")
+                pb=st.progress(0,text="Démarrage…")
+                frames=render_all(scenes,char.genre,song,td,pb)
+
                 st.write("⚙️ Encodage MP4…")
-                fp=encode_video(frames,audio,tmpdir,char.prenom)
+                fp=encode_video(frames,audio_path,tmpdir,char.prenom)
                 if not os.path.exists(fp):
                     st.error("❌ Erreur encodage. Vérifie que ffmpeg est installé."); st.stop()
                 with open(fp,"rb")as fv: vb=fv.read()

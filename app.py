@@ -691,7 +691,10 @@ def draw_ui(img, scene, f_in, song, genre):
     draw.text((10, 16), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
 
     # 📍 Lieu — droite, fond pill arrondi généré par l'IA
-    lieu = scene.lieu_texte
+    lieu_raw = scene.lieu_texte
+    if isinstance(lieu_raw, list):
+        lieu_raw = lieu_raw[0] if lieu_raw else "📍 Inconnu"
+    lieu = str(lieu_raw) if lieu_raw else "📍 Inconnu"
     try:
         lw = draw.textlength(lieu, font=F["small"])
     except:

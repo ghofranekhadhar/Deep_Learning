@@ -1597,12 +1597,10 @@ def main():
                 border_color = "#6366f1" # Bleu (Normal)
                 bg_color = "#f8fafc"
                 
-            timeline_html += f"""
-            <div style="border: 1px solid #e2e8f0; border-left: 5px solid {border_color}; background: {bg_color}; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 4px;">
-                <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">{scene_tit}</div>
-                <div style="font-size: 0.95rem; font-weight: 500; color: #1e293b; font-style: italic;">💬 "{narr_text}"</div>
-            </div>
-            """
+            timeline_html += f"""<div style="border: 1px solid #e2e8f0; border-left: 5px solid {border_color}; background: {bg_color}; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 4px;">
+<div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">{scene_tit}</div>
+<div style="font-size: 0.95rem; font-weight: 500; color: #1e293b; font-style: italic;">💬 "{narr_text}"</div>
+</div>"""
         timeline_html += "</div>"
         
         st.markdown(timeline_html, unsafe_allow_html=True)

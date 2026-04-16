@@ -61,10 +61,12 @@ class SongData:
 
 @dataclass
 class Scene:
-    titre:str; acte_label:str; decor:str; action:str
+    titre:str; decor:str; action:str
     emotion:str; dialogue:str; duree:int
-    sky_mood:str="day"; song_part:str=""
+    sky_mood:str="day"
     image_prompt:str=""
+    emotion_text:str=""
+    lieu_texte:str=""
     bg_img:Image.Image=None
 
 # ─────────────────────────────────────────
@@ -141,38 +143,72 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","hero":"{hero}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
-  "Narration Scène 1 : Joyeux bonjour à l'enfant (utilise son prénom) et annonce fascinante de l'histoire sur son ami [Noms du héros/prénom].",
-  "Narration Scène 2 : Phrase créative et amusante décrivant l'enfant qui joue.",
-  "Narration Scène 3 : Autre phrase décrivant l'activité avec originalité.",
-  "Narration Scène 4 : L'enfant découvre soudainement un nouvel objet (le danger).",
-  "Narration Scène 5 : L'enfant observe l'objet avec une grande curiosité.",
-  "Narration Scène 6 : La tentation grandit, il s'approche doucement...",
-  "Narration Scène 7 : Un énorme suspense dramatique ! Va-t-il le faire ?",
-  "Narration Scène 8 : Le point de bascule ! Il commet l'interdit ! (Ton dramatique)",
-  "Narration Scène 9 : Le contrecoup immédiat ! Très grosse frayeur ou accident réaliste.",
-  "Narration Scène 10 : L'enfant réalise sa terrible erreur avec beaucoup d'émotion.",
-  "Narration Scène 11 : Appel à l'aide ou panique totale.",
-  "Narration Scène 12 : Le conteur explique POURQUOI c'est interdit (belle leçon créative).",
-  "Narration Scène 13 : L'enfant écoute et comprend avec tristesse son erreur.",
-  "Narration Scène 14 : L'enfant fait la promesse solennelle de ne jamais recommencer.",
-  "Narration Scène 15 : Adresse-toi directement à l'enfant pour récapituler le danger, et conclus de façon très positive en disant qu'il est intelligent."
+  "Narration Scène 1 : Joyeux bonjour à l'enfant (utilise son prénom [{prenom}]) et annonce fascinante de l'histoire sur son ami [{hero}] (choisis un autre prénom aléatoire si c'est 'Par défaut' -- NE PAS utiliser le vrai prénom de l'enfant original). IMPÉRATIF : Utilise ce héros [{hero}] tout au long de l'histoire !",
+  "Narration Scène 2 : Phrase créative décrivant ce que [{hero}] (le personnage principal) est en train de faire.",
+  "Narration Scène 3 : Autre phrase décrivant l'activité de [{hero}]. (Ne dis jamais 'l'enfant', utilise toujours son nom !) ",
+  "Narration Scène 4 : [{hero}] découvre soudainement un nouvel objet (le danger).",
+  "Narration Scène 5 : [{hero}] observe l'objet avec une grande curiosité.",
+  "Narration Scène 6 : La tentation grandit, [{hero}] s'approche doucement...",
+  "Narration Scène 7 : Un énorme suspense dramatique ! Est-ce que [{hero}] va le faire ?",
+  "Narration Scène 8 : Le point de bascule ! [{hero}] commet l'interdit ! (Ton dramatique)",
+  "Narration Scène 9 : Le contrecoup immédiat ! Très grosse frayeur ou accident réaliste pour [{hero}].",
+  "Narration Scène 10 : [{hero}] réalise sa terrible erreur avec beaucoup d'émotion.",
+  "Narration Scène 11 : [{hero}] appelle à l'aide ou panique totale.",
+  "Narration Scène 12 : Le conteur explique à [{hero}] POURQUOI c'est interdit (belle leçon créative).",
+  "Narration Scène 13 : [{hero}] écoute et comprend avec tristesse son erreur.",
+  "Narration Scène 14 : [{hero}] fait la promesse solennelle de ne jamais recommencer.",
+  "Narration Scène 15 : Adresse-toi directement à l'enfant spectateur [{prenom}] pour récapituler la bêtise de [{hero}], et conclus positivement."
 ],
 "image_prompts":[
-  "Describe scene 1 background in English (e.g. colorful living room)",
-  "Describe scene 2 background in English based on story",
-  "Describe scene 3 background in English based on story",
-  "Describe scene 4 background in English based on story",
-  "Describe scene 5 background in English based on story",
-  "Describe scene 6 background in English based on story",
-  "Describe scene 7 background in English based on story",
-  "Describe scene 8 background in English based on story",
-  "Describe scene 9 background in English based on story",
-  "Describe scene 10 background in English based on story",
-  "Describe scene 11 background in English based on story",
-  "Describe scene 12 background in English based on story",
-  "Describe scene 13 background in English based on story",
-  "Describe scene 14 background in English based on story",
-  "Describe scene 15 background in English based on story"
+  "Describe scene 1 background in English. IMPORTANT: Include the main hero [{hero}]. Include friends/companions ONLY IF they are actively relevant to this scene's story.",
+  "Describe scene 2 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 3 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 4 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 5 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 6 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 7 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 8 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 9 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 10 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 11 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 12 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 13 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 14 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 15 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story."
+],
+"lieux_scenes":[
+  "phrase courte (1-3 mots max) avec 1 emoji pour indiquer le lieu exact de la scène 1 (ex: 🏠 Dans la cuisine)",
+  "phrase courte avec emoji lieu de la scène 2",
+  "phrase courte avec emoji lieu de la scène 3",
+  "phrase courte avec emoji lieu de la scène 4",
+  "phrase courte avec emoji lieu de la scène 5",
+  "phrase courte avec emoji lieu de la scène 6",
+  "phrase courte avec emoji lieu de la scène 7",
+  "phrase courte avec emoji lieu de la scène 8",
+  "phrase courte avec emoji lieu de la scène 9",
+  "phrase courte avec emoji lieu de la scène 10",
+  "phrase courte avec emoji lieu de la scène 11",
+  "phrase courte avec emoji lieu de la scène 12",
+  "phrase courte avec emoji lieu de la scène 13",
+  "phrase courte avec emoji lieu de la scène 14",
+  "phrase courte avec emoji lieu de la scène 15"
+],
+"emotions_personnage":[
+  "phrase courte indiquant l'humeur absolue du personnage qui a fait la bêtise, en utilisant SON NOM EXACT à lui (ex: 'Humeur de [Nom du Héros choisi par toi] : joyeux')",
+  "phrase indiquant l'humeur du personnage principal scène 2",
+  "phrase indiquant l'humeur du personnage principal scène 3",
+  "phrase indiquant l'humeur du personnage principal scène 4",
+  "phrase indiquant l'humeur du personnage principal scène 5",
+  "phrase indiquant l'humeur du personnage principal scène 6",
+  "phrase indiquant l'humeur du personnage principal scène 7",
+  "phrase indiquant l'humeur du personnage principal scène 8",
+  "phrase indiquant l'humeur du personnage principal scène 9",
+  "phrase indiquant l'humeur du personnage principal scène 10",
+  "phrase indiquant l'humeur du personnage principal scène 11",
+  "phrase indiquant l'humeur du personnage principal scène 12",
+  "phrase indiquant l'humeur du personnage principal scène 13",
+  "phrase indiquant l'humeur du personnage principal scène 14",
+  "phrase indiquant l'humeur du personnage principal scène 15"
 ],
 "song":{{"titre":"La Chanson de {prenom} et [danger] (style {hero})",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
@@ -369,23 +405,21 @@ def parse_scenario(d: dict) -> tuple:
     while len(img_prompts) < 15:
         img_prompts.append("beautiful landscape, children book illustration style, detailed scene")
         
-    return char, song, narrations[:15], img_prompts[:15]
+    ep = d.get("emotions_personnage", [])
+    while len(ep) < 15:
+        ep.append("détendu")
+        
+    ls = d.get("lieux_scenes", [])
+    while len(ls) < 15:
+        ls.append("📍 Quelque part")
+        
+    return char, song, narrations[:15], img_prompts[:15], ep[:15], ls[:15]
 
-# ─────────────────────────────────────────
-#  LABELS DE LIEU (affichés dans la vidéo)
-# ─────────────────────────────────────────
-DECOR_LABELS = {
-    "maison":  "🏠 Dans la maison",
-    "parc":    "🌳 Dans le parc",
-    "danger":  "⚠️ Zone de danger",
-    "cuisine": "🍳 Dans la cuisine",
-    "rue":     "🚦 Dans la rue",
-    "piscine": "🏊 Bord de piscine",
-    "bain":    "🛁 Salle de bain",
-}
+# L'ancien dictionnaire DECOR_LABELS a été entièrement retiré car les lieux sont générés 100% par l'IA.
 
-def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list, dframes: list) -> List[Scene]:
-    p = char.prenom; f = Cfg.FPS
+def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list, ep: list, ls: list, dframes: list) -> List[Scene]:
+    p = char.hero if char.hero and char.hero != "Par défaut" else char.prenom
+    f = Cfg.FPS
     dm = {"electric": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
           "kitchen":  ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
           "pool":     ["parc"]*3+["danger"]*3+["parc"]*9,
@@ -395,21 +429,21 @@ def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img
     n = narrations  # alias court
     ip = img_prompts
     return [
-        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  dframes[0],  "day",    "intro", ip[0]),
-        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  dframes[1],  "day",    "acte1", ip[1]),
-        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  dframes[2],  "golden", "acte1", ip[2]),
-        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  dframes[3],  "golden", "acte2", ip[3]),
-        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  dframes[4],  "golden", "acte2", ip[4]),
-        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  dframes[5],  "day",    "refrain1", ip[5]),
-        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  dframes[6],  "day",    "refrain1", ip[6]),
-        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  dframes[7],  "dusk",   "acte3", ip[7]),
-        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  dframes[8],  "dusk",   "acte4", ip[8]),
-        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  dframes[9],  "dusk",   "acte4", ip[9]),
-        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], dframes[10],  "day",    "refrain2", ip[10]),
-        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], dframes[11],  "day",    "acte5", ip[11]),
-        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], dframes[12],  "day",    "acte6", ip[12]),
-        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], dframes[13],  "day",    "outro", ip[13]),
-        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], dframes[14],  "day",    "outro", ip[14]),
+        Scene("Introduction",    d[0],  "saute_joie",       "heureux",   n[0],  dframes[0],  "day",    ip[0], ep[0], ls[0]),
+        Scene(f"La vie de {p}", d[1],  "court_vite",       "heureux",   n[1],  dframes[1],  "day",    ip[1], ep[1], ls[1]),
+        Scene("Belle journée",  d[2],  "marche_content",   "heureux",   n[2],  dframes[2],  "golden", ip[2], ep[2], ls[2]),
+        Scene("Qu'est-ce?",     d[3],  "decouvre_surpris", "curieux",   n[3],  dframes[3],  "golden", ip[3], ep[3], ls[3]),
+        Scene("Une idée...",    d[4],  "hesite_balance",   "penseur",   n[4],  dframes[4],  "golden", ip[4], ep[4], ls[4]),
+        Scene("⚠️ ATTENTION!",  d[5],  "appelle_gestes",   "effraye",   n[5],  dframes[5],  "day",    ip[5], ep[5], ls[5]),
+        Scene("NON NON NON!",   d[6],  "saute_peur",       "effraye",   n[6],  dframes[6],  "day",    ip[6], ep[6], ls[6]),
+        Scene("La bêtise!",     d[7],  "fait_betise_saute","curieux",   n[7],  dframes[7],  "dusk",   ip[7], ep[7], ls[7]),
+        Scene("Conséquences!",  d[8],  "court_panique",    "effraye",   n[8],  dframes[8],  "dusk",   ip[8], ep[8], ls[8]),
+        Scene("AU SECOURS!",    d[9],  "appelle_gestes",   "effraye",   n[9],  dframes[9],  "dusk",   ip[9], ep[9], ls[9]),
+        Scene("La leçon",       d[10], "ecoute_hoche",     "desole",    n[10], dframes[10],  "day",    ip[10], ep[10], ls[10]),
+        Scene(f"{p} comprend",  d[11], "pleure_assise",    "triste",    n[11], dframes[11],  "day",    ip[11], ep[11], ls[11]),
+        Scene("La promesse",    d[12], "saute_promesse",   "determine", n[12], dframes[12],  "day",    ip[12], ep[12], ls[12]),
+        Scene("Et toi?",        d[13], "pointe_enfant",    "heureux",   n[13], dframes[13],  "day",    ip[13], ep[13], ls[13]),
+        Scene("À bientôt!",     d[14], "salue_saute",      "fier",      n[14], dframes[14],  "day",    ip[14], ep[14], ls[14]),
     ]
 
 # ─────────────────────────────────────────
@@ -488,7 +522,7 @@ def anim_off(action,frame):
     if action=="pleure_assise": return 0,int(Cfg.SIZE*.04)
     return 0,int(3*math.sin(frame*.07))
 
-def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
+def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut",is_narrating=True):
     S=int(Cfg.SIZE * 0.75); dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
     shirt=P.SHIRT_G if genre=="fille" else P.SHIRT_B
     hair=P.HAIR_G if genre=="fille" else P.HAIR_B
@@ -589,7 +623,7 @@ def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
     draw.ellipse([x-int(S*.076),ey+5,x-int(S*.044),ey+20],fill=P.CHEEK)
     draw.ellipse([x+int(S*.044),ey+5,x+int(S*.076),ey+20],fill=P.CHEEK)
     my2=hy+int(S*.096)
-    is_talking = (frame % 20) < 10
+    is_talking = is_narrating and ((frame % 20) < 10)
     mouth_h = 4 + int(6 * abs(math.sin(frame * 0.5))) if is_talking else 2
     if is_talking: draw.ellipse([x-4, my2-2, x+4, my2+mouth_h], fill=(80,10,10))
     elif emotion in("heureux","fier","determine"): draw.arc([x-10,my2-5,x+10,my2+8],0,180,fill=(185,65,65),width=3)
@@ -652,13 +686,12 @@ def draw_ui(img, scene, f_in, song, genre):
         img.crop((0, 0, S, top_h)).convert("RGBA"), ov), (0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Acte label — gauche, petit violet
-    draw.text((10, 5), scene.acte_label, fill=(110, 70, 200), font=F["small"])
-    # Titre scène — gauche, gras
-    draw.text((10, 22), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
+    # Acte label retiré pour un affichage plus propre. Titre scène recentré.
+    # Titre scène — gauche, gras (centré verticalement dans la barre)
+    draw.text((10, 16), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
 
-    # 📍 Lieu — droite, fond pill arrondi
-    lieu = DECOR_LABELS.get(scene.decor, f"📍 {scene.decor.capitalize()}")
+    # 📍 Lieu — droite, fond pill arrondi généré par l'IA
+    lieu = scene.lieu_texte
     try:
         lw = draw.textlength(lieu, font=F["small"])
     except:
@@ -684,14 +717,11 @@ def draw_ui(img, scene, f_in, song, genre):
 
     y0 = S - bot_h + 6
 
-    # ♪ Parole de chanson — italique violet clair, phrase complète
-    sl = getattr(song, scene.song_part, "")
-    if sl:
-        sl_lines = wrap_text(sl, 45)[:2]
-        for sl_line in sl_lines:
-            draw.text((12, y0), f"♪ {sl_line}", fill=(180, 155, 255), font=F["small"])
-            y0 += 16
-        y0 += 4
+    # ✨ L'émotion IA du personnage principal — italique violet clair
+    # L'IA génère maintenant toute la phrase (ex: "Humeur de Spiderman : joyeux")
+    petit_texte = f"💫 {scene.emotion_text}"
+    draw.text((12, y0), petit_texte, fill=(180, 155, 255), font=F["small"])
+    y0 += 20
 
     # Ligne séparatrice
     draw.line([(12, y0), (S - 12, y0)], fill=(80, 60, 160), width=1)
@@ -705,10 +735,10 @@ def draw_ui(img, scene, f_in, song, genre):
         if end_bracket != -1:
             narr = narr[end_bracket + 1:].strip()
     
-    # Couper plus court (25 au lieu de 30) pour laisser place au personnage à droite
-    lines = wrap_text(narr, 25)[:3]
+    # Afficher plus de texte en largeur pour le condenser sur 3 lignes max sans couper le contenu
+    lines = wrap_text(narr, 56)[:3]
     for i, line in enumerate(lines):
-        # Première ligne plus grande
+        # Première ligne un peu plus grande
         font = F["med"] if i == 0 else F["small"]
         color = (255, 252, 220) if i == 0 else (210, 200, 240)
         draw.text((12, y0), line, fill=color, font=font)
@@ -743,7 +773,9 @@ def render_scene(scene, genre, song, gframe, td):
         draw_ui(img, scene, f, song, genre)
 
         # 3. Personnage au premier plan (par dessus l'image et l'interface)
-        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre)
+        # La narration audio a ~500ms de silence à la fin, soit environ 12 frames
+        is_narrating_now = f < (scene.duree - 12)
+        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre, hero="Par défaut", is_narrating=is_narrating_now)
         
         frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
     return frames
@@ -1108,20 +1140,16 @@ def main():
         if valid_key: st.success("✅ Clé valide")
         else: st.warning("Clé non renseignée")
 
-        st.markdown('<div class="sb-note">🆓 Clé <b>100% gratuite</b> sur<br>'
-            '<a href="https://console.groq.com" target="_blank">console.groq.com</a><br>'
-            '→ <b>API Keys → Create API Key</b><br><br>'
-            '🔒 Jamais sauvegardée.</div>',unsafe_allow_html=True)
 
         st.markdown("---")
-        st.markdown("**📋 Guide rapide**")
+        st.markdown("**📋 Comment ça marche ?**")
         for i,(ic,txt) in enumerate([
-            ("1️⃣","Copie ta clé Groq ci-dessus"),
-            ("2️⃣","Décris la bêtise de ton enfant"),
-            ("3️⃣","L'IA analyse et génère"),
-            ("4️⃣","Télécharge la vidéo MP4"),
+            ("1️⃣","<b>Racontez</b> la bêtise de l'enfant dans le chat"),
+            ("2️⃣","<b>L'IA analyse</b> et propose un scénario"),
+            ("3️⃣","<b>Personnalisez</b> (Héros, Musique...)"),
+            ("4️⃣","<b>Téléchargez</b> le dessin animé vidéo !"),
         ],1):
-            st.markdown(f'<div class="sb-step">{ic} <span>{txt}</span></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="sb-step">{ic} <span style="line-height:1.4;">{txt}</span></div>',unsafe_allow_html=True)
 
         if st.session_state.step>1:
             st.markdown("---")
@@ -1414,11 +1442,13 @@ def main():
                             _data = scenario_ai(
                                 st.session_state.betise, _v, st.session_state.api_key)
                             st.session_state.scenario = _data
-                            _ch, _sg, _nar, _ipr = parse_scenario(_data)
+                            _ch, _sg, _nar, _ipr, _ep, _ls = parse_scenario(_data)
                             st.session_state.char  = _ch
                             st.session_state.song  = _sg
                             st.session_state.narrations  = _nar
                             st.session_state.img_prompts = _ipr
+                            st.session_state.emotions_personnage = _ep
+                            st.session_state.lieux_scenes = _ls
                             st.session_state.step = 2
                             st.rerun()
                         except json.JSONDecodeError:
@@ -1655,7 +1685,7 @@ def main():
                 if not durees_frames or len(durees_frames) < 15:
                     durees_frames = [int(Cfg.FPS*5)] * 15
                     
-                scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts, durees_frames)
+                scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts, st.session_state.emotions_personnage, st.session_state.lieux_scenes, durees_frames)
                 
                 st.write("🖼️ Génération des décors avec l'IA...")
                 import urllib.request, urllib.parse, time
@@ -1664,7 +1694,7 @@ def main():
                     image_recue = False
                     for tentatives in range(10):
                         try:
-                            prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
+                            prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text"
                             url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
                             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -1709,7 +1739,7 @@ def main():
     # ── Footer ──
     st.markdown("---")
     st.markdown("<p style='text-align:center;font-size:.76rem;color:#94a3b8;'>"
-        "Studio Animé Éducatif v3 · Groq AI (100% gratuit) · "
+        "Studio Animé Éducatif v3 · Groq AI · "
         "Pour les enfants de 3 à 8 ans · Bienveillant &amp; Éducatif</p>",
         unsafe_allow_html=True)
 

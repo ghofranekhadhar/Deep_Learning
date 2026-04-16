@@ -160,21 +160,21 @@ Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
   "Narration Scène 15 : Adresse-toi directement à l'enfant spectateur [{prenom}] pour récapituler la bêtise de [{hero}], et conclus positivement."
 ],
 "image_prompts":[
-  "Describe scene 1 background in English. IMPORTANT: Include the main hero [{hero}]. Include friends/companions ONLY IF they are actively relevant to this scene's story.",
-  "Describe scene 2 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 3 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 4 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 5 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 6 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 7 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 8 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 9 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 10 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 11 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 12 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 13 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 14 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
-  "Describe scene 15 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story."
+  "Describe scene 1 background in English (e.g. colorful living room)",
+  "Describe scene 2 background in English based on story",
+  "Describe scene 3 background in English based on story",
+  "Describe scene 4 background in English based on story",
+  "Describe scene 5 background in English based on story",
+  "Describe scene 6 background in English based on story",
+  "Describe scene 7 background in English based on story",
+  "Describe scene 8 background in English based on story",
+  "Describe scene 9 background in English based on story",
+  "Describe scene 10 background in English based on story",
+  "Describe scene 11 background in English based on story",
+  "Describe scene 12 background in English based on story",
+  "Describe scene 13 background in English based on story",
+  "Describe scene 14 background in English based on story",
+  "Describe scene 15 background in English based on story"
 ],
 "lieux_scenes":[
   "phrase courte (1-3 mots max) avec 1 emoji pour indiquer le lieu exact de la scène 1 (ex: 🏠 Dans la cuisine)",
@@ -522,7 +522,7 @@ def anim_off(action,frame):
     if action=="pleure_assise": return 0,int(Cfg.SIZE*.04)
     return 0,int(3*math.sin(frame*.07))
 
-def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut",is_narrating=True):
+def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
     S=int(Cfg.SIZE * 0.75); dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
     shirt=P.SHIRT_G if genre=="fille" else P.SHIRT_B
     hair=P.HAIR_G if genre=="fille" else P.HAIR_B
@@ -623,7 +623,7 @@ def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut",is_narrat
     draw.ellipse([x-int(S*.076),ey+5,x-int(S*.044),ey+20],fill=P.CHEEK)
     draw.ellipse([x+int(S*.044),ey+5,x+int(S*.076),ey+20],fill=P.CHEEK)
     my2=hy+int(S*.096)
-    is_talking = is_narrating and ((frame % 20) < 10)
+    is_talking = (frame % 20) < 10
     mouth_h = 4 + int(6 * abs(math.sin(frame * 0.5))) if is_talking else 2
     if is_talking: draw.ellipse([x-4, my2-2, x+4, my2+mouth_h], fill=(80,10,10))
     elif emotion in("heureux","fier","determine"): draw.arc([x-10,my2-5,x+10,my2+8],0,180,fill=(185,65,65),width=3)
@@ -691,10 +691,7 @@ def draw_ui(img, scene, f_in, song, genre):
     draw.text((10, 16), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
 
     # 📍 Lieu — droite, fond pill arrondi généré par l'IA
-    lieu_raw = scene.lieu_texte
-    if isinstance(lieu_raw, list):
-        lieu_raw = lieu_raw[0] if lieu_raw else "📍 Inconnu"
-    lieu = str(lieu_raw) if lieu_raw else "📍 Inconnu"
+    lieu = scene.lieu_texte
     try:
         lw = draw.textlength(lieu, font=F["small"])
     except:
@@ -776,9 +773,7 @@ def render_scene(scene, genre, song, gframe, td):
         draw_ui(img, scene, f, song, genre)
 
         # 3. Personnage au premier plan (par dessus l'image et l'interface)
-        # La narration audio a ~500ms de silence à la fin, soit environ 12 frames
-        is_narrating_now = f < (scene.duree - 12)
-        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre, hero="Par défaut", is_narrating=is_narrating_now)
+        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre)
         
         frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
     return frames
@@ -1143,16 +1138,20 @@ def main():
         if valid_key: st.success("✅ Clé valide")
         else: st.warning("Clé non renseignée")
 
+        st.markdown('<div class="sb-note">🆓 Clé <b>100% gratuite</b> sur<br>'
+            '<a href="https://console.groq.com" target="_blank">console.groq.com</a><br>'
+            '→ <b>API Keys → Create API Key</b><br><br>'
+            '🔒 Jamais sauvegardée.</div>',unsafe_allow_html=True)
 
         st.markdown("---")
-        st.markdown("**📋 Comment ça marche ?**")
+        st.markdown("**📋 Guide rapide**")
         for i,(ic,txt) in enumerate([
-            ("1️⃣","<b>Racontez</b> la bêtise de l'enfant dans le chat"),
-            ("2️⃣","<b>L'IA analyse</b> et propose un scénario"),
-            ("3️⃣","<b>Personnalisez</b> (Héros, Musique...)"),
-            ("4️⃣","<b>Téléchargez</b> le dessin animé vidéo !"),
+            ("1️⃣","Copie ta clé Groq ci-dessus"),
+            ("2️⃣","Décris la bêtise de ton enfant"),
+            ("3️⃣","L'IA analyse et génère"),
+            ("4️⃣","Télécharge la vidéo MP4"),
         ],1):
-            st.markdown(f'<div class="sb-step">{ic} <span style="line-height:1.4;">{txt}</span></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="sb-step">{ic} <span>{txt}</span></div>',unsafe_allow_html=True)
 
         if st.session_state.step>1:
             st.markdown("---")
@@ -1697,7 +1696,7 @@ def main():
                     image_recue = False
                     for tentatives in range(10):
                         try:
-                            prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text"
+                            prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
                             url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
                             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -1750,4 +1749,3 @@ def main():
 if __name__=="__main__":
     main()
     
-

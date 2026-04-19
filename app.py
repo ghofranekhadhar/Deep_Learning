@@ -44,7 +44,7 @@ class Cfg:
     FONT_R=FONT_DIR+"DejaVuSans.ttf"
     VF="fr-FR-DeniseNeural"; VG="fr-FR-HenriNeural"
     VRATE="-20%"; VPITCH="+5Hz"
-    MODEL="llama3-8b-8192"
+    MODEL="llama-3.3-70b-versatile"
 
 # ─────────────────────────────────────────
 #  DATACLASSES

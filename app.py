@@ -61,10 +61,12 @@ class SongData:
 
 @dataclass
 class Scene:
-    titre:str; acte_label:str; decor:str; action:str
+    titre:str; decor:str; action:str
     emotion:str; dialogue:str; duree:int
-    sky_mood:str="day"; song_part:str=""
+    sky_mood:str="day"
     image_prompt:str=""
+    emotion_text:str=""
+    lieu_texte:str=""
     bg_img:Image.Image=None
 
 # ─────────────────────────────────────────
@@ -90,11 +92,11 @@ THEMES = {
     "road":{"label":"🚦 Route","emoji":"🚦","color":"#64748b",
         "sky_n":((140,180,230),(190,215,245)),"sky_d":((160,80,40),(120,60,30)),"sky_g":((255,180,60),(255,210,110)),
         "gnd":(80,80,80),"gnds":(55,55,55),"fx":(255,255,0),"wall":(200,200,210),
-        "desc":"Rue de ville, passage piéton, feux de signalisation"},
+        "desc":"Rue de ville, passage piéton, véritable feu tricolore lumineux de circulation (traffic lights, NO FIRE FLAMES)"},
     "fire":{"label":"🔥 Feu / Gaz","emoji":"🔥","color":"#ef4444",
         "sky_n":((255,180,100),(255,210,150)),"sky_d":((200,50,0),(140,30,0)),"sky_g":((255,160,40),(255,200,90)),
         "gnd":(70,160,70),"gnds":(50,120,50),"fx":(255,80,0),"wall":(255,220,195),
-        "desc":"Cuisine avec gaz, flammes rouges dramatiques"},
+        "desc":"Cuisine avec gaz, vraies flammes de feu ardentes (real fire flames)"},
     "behaviour":{"label":"🤝 Comportement","emoji":"🤝","color":"#f59e0b",
         "sky_n":((255,230,160),(255,245,200)),"sky_d":((200,100,30),(140,70,20)),"sky_g":((255,200,80),(255,230,120)),
         "gnd":(80,170,80),"gnds":(55,130,55),"fx":(255,190,0),"wall":(255,245,220),
@@ -106,13 +108,12 @@ THEMES = {
 }
 
 EXAMPLES = [
-    {"icon":"⚡","label":"Prises électriques","text":"Mon fils Adam, 5 ans, touche les prises électriques","theme":"electric"},
-    {"icon":"🔪","label":"Couteaux","text":"Mon fils Youssef, 7 ans, joue avec les couteaux de cuisine","theme":"kitchen"},
-    {"icon":"💊","label":"Médicaments","text":"Ma fille Inès, 6 ans, mange des médicaments","theme":"meds"},
-    {"icon":"🏊","label":"Piscine","text":"Ma fille Lina, 4 ans, s'approche seule du bord de la piscine","theme":"pool"},
-    {"icon":"🚗","label":"Traverser la rue","text":"Mon fils Rayan, 6 ans, traverse la rue sans regarder","theme":"road"},
-    {"icon":"🔥","label":"Feu / Gaz","text":"Ma fille Sara, 5 ans, allume les boutons du gaz","theme":"fire"},
-    {"icon":"🤝","label":"Frappe ses amis","text":"Mon fils Omar, 5 ans, frappe ses camarades de classe","theme":"behaviour"},
+    {"icon":":material/electric_bolt:","label":"Prises","text":"Mon fils Adam, 5 ans, touche les prises électriques","theme":"electric"},
+    {"icon":":material/restaurant:","label":"Couteaux","text":"Mon fils Youssef, 7 ans, joue avec les couteaux de cuisine","theme":"kitchen"},
+    {"icon":":material/medication:","label":"Médicaments","text":"Ma fille Inès, 6 ans, mange des médicaments","theme":"meds"},
+    {"icon":":material/pool:","label":"Piscine","text":"Ma fille Lina, 4 ans, s'approche seule du bord de la piscine","theme":"pool"},
+    {"icon":":material/directions_car:","label":"Traverser","text":"Mon fils Rayan, 6 ans, traverse la rue sans regarder","theme":"road"},
+    {"icon":":material/local_fire_department:","label":"Feu / Gaz","text":"Ma fille Sara, 5 ans, allume les boutons du gaz","theme":"fire"},
 ]
 
 # ─────────────────────────────────────────
@@ -135,46 +136,82 @@ Analyse cette phrase parentale et réponds UNIQUEMENT en JSON valide sans markdo
 }
 Phrase : {betise}"""
 
-SCN_PROMPT="""Tu es auteur de livres éducatifs pour enfants 3-8 ans. Génère une chanson narrative rimée.
+SCN_PROMPT="""Tu es auteur de livres éducatifs pour enfants 3-8 ans. Génère une histoire narrative d'aventure.
 INSTRUCTION DE STYLE : Les phrases de narration (scenes_narration) DOIVENT être racontées avec une voix de conteur très enthousiaste ! Utilise des exclamations, des onomatopées (Boïng, Oups, Aïe) et des questions pour captiver l'enfant !
+INSTRUCTION LANGUE : TOUS les textes générés (scenes_narration, lieux_scenes, emotions_personnage, conseils, prenom, danger_court, decor_principal, etc.) DOIVENT ÊTRE STRICTEMENT EN {langue}.
+Exception : "image_prompts" DOIT impérativement TOUJOURS rester en ANGLAIS.
 Décor : {theme_desc}. Réponds UNIQUEMENT JSON valide sans markdown :
 {{"prenom":"{prenom}","age":{age},"genre":"{genre}","hero":"{hero}","danger_court":"3 mots max",
 "decor_principal":"8 mots max","ambiance_couleur":"couleur dominante",
 "scenes_narration":[
-  "Narration Scène 1 : Joyeux bonjour à l'enfant (utilise son prénom) et annonce fascinante de l'histoire sur son ami [Noms du héros/prénom].",
-  "Narration Scène 2 : Phrase créative et amusante décrivant l'enfant qui joue.",
-  "Narration Scène 3 : Autre phrase décrivant l'activité avec originalité.",
-  "Narration Scène 4 : L'enfant découvre soudainement un nouvel objet (le danger).",
-  "Narration Scène 5 : L'enfant observe l'objet avec une grande curiosité.",
-  "Narration Scène 6 : La tentation grandit, il s'approche doucement...",
-  "Narration Scène 7 : Un énorme suspense dramatique ! Va-t-il le faire ?",
-  "Narration Scène 8 : Le point de bascule ! Il commet l'interdit ! (Ton dramatique)",
-  "Narration Scène 9 : Le contrecoup immédiat ! Très grosse frayeur ou accident réaliste.",
-  "Narration Scène 10 : L'enfant réalise sa terrible erreur avec beaucoup d'émotion.",
-  "Narration Scène 11 : Appel à l'aide ou panique totale.",
-  "Narration Scène 12 : Le conteur explique POURQUOI c'est interdit (belle leçon créative).",
-  "Narration Scène 13 : L'enfant écoute et comprend avec tristesse son erreur.",
-  "Narration Scène 14 : L'enfant fait la promesse solennelle de ne jamais recommencer.",
-  "Narration Scène 15 : Adresse-toi directement à l'enfant pour récapituler le danger, et conclus de façon très positive en disant qu'il est intelligent."
+  "Narration Scène 1 : Salutation directe et joyeuse au spectateur [{prenom}] et annonce fascinante de l'histoire qu'il va regarder sur son ami [{hero}] (invente un prénom aléatoire si 'Par défaut' -- JAMAIS le vrai prénom de l'enfant). Ne salue PAS le héros !",
+  "Narration Scène 2 : Phrase créative décrivant ce que le héros [{hero}] est en train de faire.",
+  "Narration Scène 3 : Autre phrase décrivant l'activité de [{hero}]. (Ne dis jamais 'l'enfant', utilise toujours son nom !) ",
+  "Narration Scène 4 : [{hero}] découvre soudainement un nouvel objet (le danger).",
+  "Narration Scène 5 : [{hero}] observe l'objet avec une grande curiosité.",
+  "Narration Scène 6 : La tentation grandit, [{hero}] s'approche doucement...",
+  "Narration Scène 7 : Un énorme suspense dramatique ! Est-ce que [{hero}] va le faire ?",
+  "Narration Scène 8 : Le point de bascule ! [{hero}] commet l'interdit ! (Ton dramatique)",
+  "Narration Scène 9 : Le contrecoup immédiat ! Très grosse frayeur ou accident réaliste pour [{hero}].",
+  "Narration Scène 10 : [{hero}] réalise sa terrible erreur avec beaucoup d'émotion.",
+  "Narration Scène 11 : [{hero}] appelle à l'aide ou panique totale.",
+  "Narration Scène 12 : Le conteur explique à [{hero}] POURQUOI c'est interdit (belle leçon créative).",
+  "Narration Scène 13 : [{hero}] écoute et comprend avec tristesse son erreur.",
+  "Narration Scène 14 : [{hero}] fait la promesse solennelle de ne jamais recommencer.",
+  "Narration Scène 15 : Adresse-toi directement au spectateur [{prenom}] pour récapituler la bêtise de [{hero}], et conclus positivement. (ATTENTION: NE LUI RE-DIS PAS BONJOUR ICI, juste un message de conclusion !)"
 ],
 "image_prompts":[
-  "Describe scene 1 background in English (e.g. colorful living room)",
-  "Describe scene 2 background in English based on story",
-  "Describe scene 3 background in English based on story",
-  "Describe scene 4 background in English based on story",
-  "Describe scene 5 background in English based on story",
-  "Describe scene 6 background in English based on story",
-  "Describe scene 7 background in English based on story",
-  "Describe scene 8 background in English based on story",
-  "Describe scene 9 background in English based on story",
-  "Describe scene 10 background in English based on story",
-  "Describe scene 11 background in English based on story",
-  "Describe scene 12 background in English based on story",
-  "Describe scene 13 background in English based on story",
-  "Describe scene 14 background in English based on story",
-  "Describe scene 15 background in English based on story"
+  "Describe scene 1 background in English. IMPORTANT: Show the main hero [{hero}] looking DIRECTLY at the camera lens, making direct eye contact with the viewer, and waving happily.",
+  "Describe scene 2 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 3 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 4 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 5 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 6 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 7 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 8 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 9 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 10 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 11 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 12 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 13 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 14 background in English. Include [{hero}]. Include friends ONLY IF relevant to this scene's story.",
+  "Describe scene 15 background in English. IMPORTANT: Show the main hero [{hero}] looking DIRECTLY into the camera, making direct eye contact with the child viewer, waving goodbye or giving a thumbs up."
 ],
-"song":{{"titre":"La Chanson de {prenom} et [danger] (style {hero})",
+"lieux_scenes":[
+  "phrase courte (1-3 mots max) SANS AUCUN EMOJI pour indiquer le lieu (ex: Dans la cuisine)",
+  "phrase courte lieu scène 2 sans emoji",
+  "phrase courte lieu scène 3 sans emoji",
+  "phrase courte lieu scène 4 sans emoji",
+  "phrase courte lieu scène 5 sans emoji",
+  "phrase courte lieu scène 6 sans emoji",
+  "phrase courte lieu scène 7 sans emoji",
+  "phrase courte lieu scène 8 sans emoji",
+  "phrase courte lieu scène 9 sans emoji",
+  "phrase courte lieu scène 10 sans emoji",
+  "phrase courte lieu scène 11 sans emoji",
+  "phrase courte lieu scène 12 sans emoji",
+  "phrase courte lieu scène 13 sans emoji",
+  "phrase courte lieu scène 14 sans emoji",
+  "phrase courte lieu scène 15 sans emoji"
+],
+"emotions_personnage":[
+  "état émotionnel très court, ex: 'Dora heureuse' ou 'Spiderman triste'. NE JAMAIS ÉCRIRE le mot 'Humeur', juste l'état.",
+  "état émotionnel scène 2, direct et court",
+  "état émotionnel scène 3",
+  "état émotionnel scène 4",
+  "état émotionnel scène 5",
+  "état émotionnel scène 6",
+  "état émotionnel scène 7",
+  "état émotionnel scène 8",
+  "état émotionnel scène 9",
+  "état émotionnel scène 10",
+  "état émotionnel scène 11",
+  "état émotionnel scène 12",
+  "état émotionnel scène 13",
+  "état émotionnel scène 14",
+  "état émotionnel scène 15"
+],
+"song":{{"titre":"L'Histoire de {prenom} et [danger] (style {hero})",
 "intro":"2-3 phrases d'accroche rimées","acte1":"vie normale 3-4 phrases rimées",
 "acte2":"découverte objet dangereux 3-4 phrases rimées",
 "refrain1":"avertissement NON NON NON 3-4 phrases rimées",
@@ -225,7 +262,7 @@ def validate_ai(betise: str, api_key: str) -> dict:
 #  CHAT PROMPT — conversation libre + détection scénario
 # ─────────────────────────────────────────
 CHAT_PROMPT = """
-Tu es un assistant pédagogique chaleureux et compréhensif. Tu parles UNIQUEMENT français.
+Tu es un assistant pédagogique chaleureux et compréhensif. Tu parles UNIQUEMENT en {langue}.
 Tu aides les PARENTS avec l'éducation de leur enfant.
 
 Règle 1 — CONVERSATION GÉNÉRALE :
@@ -309,7 +346,8 @@ def chat_ai(message: str, api_key: str, current_state: dict = None) -> dict:
 def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     theme_val = val.get("theme") or "general"
     t = THEMES.get(theme_val, THEMES["general"])
-    p = SCN_PROMPT.replace("{betise}", betise).replace("{theme_desc}", t["desc"])
+    langue = st.session_state.get("langue", "Français")
+    p = SCN_PROMPT.replace("{betise}", betise).replace("{theme_desc}", t["desc"]).replace("{langue}", langue)
     prenom = val.get("prenom") or "l'enfant"
     age = val.get("age") or 5
     genre = val.get("genre") or "garçon"
@@ -320,7 +358,7 @@ def scenario_ai(betise: str, val: dict, api_key: str) -> dict:
     p = p.replace("{hero}", str(hero))
     
     if hero and hero != "Par défaut":
-        p += f"\n\n🚨 INSTRUCTION ABSOLUE : Le parent a choisi le héros '{hero}'. Ce héros ({hero}) DOIT ÊTRE LE PERSONNAGE PRINCIPAL de l'histoire et de la chanson ! C'est {hero} qui fait la bêtise et qui apprend la leçon, PAS un personnage secondaire qui vient l'aider !"
+        p += f"\n\n🚨 INSTRUCTION ABSOLUE : Le parent a choisi le héros '{hero}'. Ce héros ({hero}) DOIT ÊTRE LE PERSONNAGE PRINCIPAL de l'histoire et de la narration ! C'est {hero} qui fait la bêtise et qui apprend la leçon, PAS un personnage secondaire qui vient l'aider !"
         
     return _call(api_key, p, 3000)
 
@@ -331,7 +369,7 @@ def parse_scenario(d: dict) -> tuple:
     hero = d.get("hero") or "Par défaut"
     char = Character(prenom=str(prenom), age=int(age), genre=str(genre), hero=str(hero))
     s = d.get("song", {})
-    song = SongData(titre=s.get("titre",f"Chanson de {char.prenom}"), intro=s.get("intro","..."), acte1=s.get("acte1","..."),
+    song = SongData(titre=s.get("titre",f"Histoire de {char.prenom}"), intro=s.get("intro","..."), acte1=s.get("acte1","..."),
         acte2=s.get("acte2","..."), refrain1=s.get("refrain1","..."), acte3=s.get("acte3","..."),
         acte4=s.get("acte4","..."), refrain2=s.get("refrain2","..."), acte5=s.get("acte5","..."),
         acte6=s.get("acte6","..."), outro=s.get("outro","..."))
@@ -369,23 +407,21 @@ def parse_scenario(d: dict) -> tuple:
     while len(img_prompts) < 15:
         img_prompts.append("beautiful landscape, children book illustration style, detailed scene")
         
-    return char, song, narrations[:15], img_prompts[:15]
+    ep = d.get("emotions_personnage", [])
+    while len(ep) < 15:
+        ep.append("détendu")
+        
+    ls = d.get("lieux_scenes", [])
+    while len(ls) < 15:
+        ls.append("📍 Quelque part")
+        
+    return char, song, narrations[:15], img_prompts[:15], ep[:15], ls[:15]
 
-# ─────────────────────────────────────────
-#  LABELS DE LIEU (affichés dans la vidéo)
-# ─────────────────────────────────────────
-DECOR_LABELS = {
-    "maison":  "🏠 Dans la maison",
-    "parc":    "🌳 Dans le parc",
-    "danger":  "⚠️ Zone de danger",
-    "cuisine": "🍳 Dans la cuisine",
-    "rue":     "🚦 Dans la rue",
-    "piscine": "🏊 Bord de piscine",
-    "bain":    "🛁 Salle de bain",
-}
+# L'ancien dictionnaire DECOR_LABELS a été entièrement retiré car les lieux sont générés 100% par l'IA.
 
-def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list, dframes: list) -> List[Scene]:
-    p = char.prenom; f = Cfg.FPS
+def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img_prompts: list, ep: list, ls: list, dframes: list) -> List[Scene]:
+    p = char.hero if char.hero and char.hero != "Par défaut" else char.prenom
+    f = Cfg.FPS
     dm = {"electric": ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
           "kitchen":  ["maison","parc","maison","maison","maison","danger"]+["parc"]*9,
           "pool":     ["parc"]*3+["danger"]*3+["parc"]*9,
@@ -395,21 +431,21 @@ def build_scenes(char: Character, song: SongData, tk: str, narrations: list, img
     n = narrations  # alias court
     ip = img_prompts
     return [
-        Scene("Introduction",    "Intro",    d[0],  "saute_joie",       "heureux",   n[0],  dframes[0],  "day",    "intro", ip[0]),
-        Scene(f"La vie de {p}", "Acte I",   d[1],  "court_vite",       "heureux",   n[1],  dframes[1],  "day",    "acte1", ip[1]),
-        Scene("Belle journée",  "Acte I",   d[2],  "marche_content",   "heureux",   n[2],  dframes[2],  "golden", "acte1", ip[2]),
-        Scene("Qu'est-ce?",     "Acte II",  d[3],  "decouvre_surpris", "curieux",   n[3],  dframes[3],  "golden", "acte2", ip[3]),
-        Scene("Une idée...",    "Acte II",  d[4],  "hesite_balance",   "penseur",   n[4],  dframes[4],  "golden", "acte2", ip[4]),
-        Scene("⚠️ ATTENTION!",  "Refrain",  d[5],  "appelle_gestes",   "effraye",   n[5],  dframes[5],  "day",    "refrain1", ip[5]),
-        Scene("NON NON NON!",   "Refrain",  d[6],  "saute_peur",       "effraye",   n[6],  dframes[6],  "day",    "refrain1", ip[6]),
-        Scene("La bêtise!",     "Acte III", d[7],  "fait_betise_saute","curieux",   n[7],  dframes[7],  "dusk",   "acte3", ip[7]),
-        Scene("Conséquences!",  "Acte IV",  d[8],  "court_panique",    "effraye",   n[8],  dframes[8],  "dusk",   "acte4", ip[8]),
-        Scene("AU SECOURS!",    "Acte IV",  d[9],  "appelle_gestes",   "effraye",   n[9],  dframes[9],  "dusk",   "acte4", ip[9]),
-        Scene("La leçon",       "Refrain",  d[10], "ecoute_hoche",     "desole",    n[10], dframes[10],  "day",    "refrain2", ip[10]),
-        Scene(f"{p} comprend",  "Acte V",   d[11], "pleure_assise",    "triste",    n[11], dframes[11],  "day",    "acte5", ip[11]),
-        Scene("La promesse",    "Acte VI",  d[12], "saute_promesse",   "determine", n[12], dframes[12],  "day",    "acte6", ip[12]),
-        Scene("Et toi?",        "Outro",    d[13], "pointe_enfant",    "heureux",   n[13], dframes[13],  "day",    "outro", ip[13]),
-        Scene("À bientôt!",     "Outro",    d[14], "salue_saute",      "fier",      n[14], dframes[14],  "day",    "outro", ip[14]),
+        Scene("Introduction",    d[0],  "saute_joie",       "heureux",   n[0],  dframes[0],  "day",    ip[0], ep[0], ls[0]),
+        Scene(f"La vie de {p}", d[1],  "court_vite",       "heureux",   n[1],  dframes[1],  "day",    ip[1], ep[1], ls[1]),
+        Scene("Belle journée",  d[2],  "marche_content",   "heureux",   n[2],  dframes[2],  "golden", ip[2], ep[2], ls[2]),
+        Scene("Qu'est-ce?",     d[3],  "decouvre_surpris", "curieux",   n[3],  dframes[3],  "golden", ip[3], ep[3], ls[3]),
+        Scene("Une idée...",    d[4],  "hesite_balance",   "penseur",   n[4],  dframes[4],  "golden", ip[4], ep[4], ls[4]),
+        Scene("⚠️ ATTENTION!",  d[5],  "appelle_gestes",   "effraye",   n[5],  dframes[5],  "day",    ip[5], ep[5], ls[5]),
+        Scene("NON NON NON!",   d[6],  "saute_peur",       "effraye",   n[6],  dframes[6],  "day",    ip[6], ep[6], ls[6]),
+        Scene("La bêtise!",     d[7],  "fait_betise_saute","curieux",   n[7],  dframes[7],  "dusk",   ip[7], ep[7], ls[7]),
+        Scene("Conséquences!",  d[8],  "court_panique",    "effraye",   n[8],  dframes[8],  "dusk",   ip[8], ep[8], ls[8]),
+        Scene("AU SECOURS!",    d[9],  "appelle_gestes",   "effraye",   n[9],  dframes[9],  "dusk",   ip[9], ep[9], ls[9]),
+        Scene("La leçon",       d[10], "ecoute_hoche",     "desole",    n[10], dframes[10],  "day",    ip[10], ep[10], ls[10]),
+        Scene(f"{p} comprend",  d[11], "pleure_assise",    "triste",    n[11], dframes[11],  "day",    ip[11], ep[11], ls[11]),
+        Scene("La promesse",    d[12], "saute_promesse",   "determine", n[12], dframes[12],  "day",    ip[12], ep[12], ls[12]),
+        Scene("Et toi?",        d[13], "pointe_enfant",    "heureux",   n[13], dframes[13],  "day",    ip[13], ep[13], ls[13]),
+        Scene("À bientôt!",     d[14], "salue_saute",      "fier",      n[14], dframes[14],  "day",    ip[14], ep[14], ls[14]),
     ]
 
 # ─────────────────────────────────────────
@@ -488,8 +524,8 @@ def anim_off(action,frame):
     if action=="pleure_assise": return 0,int(Cfg.SIZE*.04)
     return 0,int(3*math.sin(frame*.07))
 
-def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
-    S=int(Cfg.SIZE * 0.75); dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
+def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut",is_narrating=True):
+    S=int(Cfg.SIZE * 0.60); dx,dy=anim_off(action,frame); x,y=cx+dx,cy+dy
     shirt=P.SHIRT_G if genre=="fille" else P.SHIRT_B
     hair=P.HAIR_G if genre=="fille" else P.HAIR_B
     eye_c=P.EYE_G if genre=="fille" else P.EYE_B
@@ -589,7 +625,7 @@ def draw_char(draw,cx,cy,action,emotion,frame,genre,hero="Par défaut"):
     draw.ellipse([x-int(S*.076),ey+5,x-int(S*.044),ey+20],fill=P.CHEEK)
     draw.ellipse([x+int(S*.044),ey+5,x+int(S*.076),ey+20],fill=P.CHEEK)
     my2=hy+int(S*.096)
-    is_talking = (frame % 20) < 10
+    is_talking = is_narrating and ((frame % 20) < 10)
     mouth_h = 4 + int(6 * abs(math.sin(frame * 0.5))) if is_talking else 2
     if is_talking: draw.ellipse([x-4, my2-2, x+4, my2+mouth_h], fill=(80,10,10))
     elif emotion in("heureux","fier","determine"): draw.arc([x-10,my2-5,x+10,my2+8],0,180,fill=(185,65,65),width=3)
@@ -652,13 +688,18 @@ def draw_ui(img, scene, f_in, song, genre):
         img.crop((0, 0, S, top_h)).convert("RGBA"), ov), (0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Acte label — gauche, petit violet
-    draw.text((10, 5), scene.acte_label, fill=(110, 70, 200), font=F["small"])
-    # Titre scène — gauche, gras
-    draw.text((10, 22), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
+    # Acte label retiré pour un affichage plus propre. Titre scène recentré.
+    # Titre scène — gauche, gras (centré verticalement dans la barre)
+    draw.text((10, 16), scene.titre[:32], fill=(20, 20, 60), font=F["med"])
 
-    # 📍 Lieu — droite, fond pill arrondi
-    lieu = DECOR_LABELS.get(scene.decor, f"📍 {scene.decor.capitalize()}")
+    # 📍 Lieu — droite, fond pill arrondi généré par l'IA
+    lieu_raw = scene.lieu_texte
+    if isinstance(lieu_raw, list):
+        lieu_raw = lieu_raw[0] if lieu_raw else "Inconnu"
+    lieu = str(lieu_raw) if lieu_raw else "Inconnu"
+    import re
+    # Supprime tous les émojis et caractères non-textuels pour éviter le bug d'affichage PIL
+    lieu = re.sub(r'[^\w\s.,\'!-]', '', lieu, flags=re.UNICODE).strip()
     try:
         lw = draw.textlength(lieu, font=F["small"])
     except:
@@ -684,14 +725,11 @@ def draw_ui(img, scene, f_in, song, genre):
 
     y0 = S - bot_h + 6
 
-    # ♪ Parole de chanson — italique violet clair, phrase complète
-    sl = getattr(song, scene.song_part, "")
-    if sl:
-        sl_lines = wrap_text(sl, 45)[:2]
-        for sl_line in sl_lines:
-            draw.text((12, y0), f"♪ {sl_line}", fill=(180, 155, 255), font=F["small"])
-            y0 += 16
-        y0 += 4
+    # ✨ L'émotion IA du personnage principal — italique violet clair
+    # L'IA génère maintenant toute la phrase (ex: "Humeur de Spiderman : joyeux")
+    petit_texte = f"* {scene.emotion_text}"
+    draw.text((12, y0), petit_texte, fill=(180, 155, 255), font=F["small"])
+    y0 += 20
 
     # Ligne séparatrice
     draw.line([(12, y0), (S - 12, y0)], fill=(80, 60, 160), width=1)
@@ -705,10 +743,10 @@ def draw_ui(img, scene, f_in, song, genre):
         if end_bracket != -1:
             narr = narr[end_bracket + 1:].strip()
     
-    # Couper plus court (25 au lieu de 30) pour laisser place au personnage à droite
-    lines = wrap_text(narr, 25)[:3]
+    # Garder la largeur à 36 pour que le texte n'écrase pas le personnage animé Python superposé à droite
+    lines = wrap_text(narr, 36)[:4]
     for i, line in enumerate(lines):
-        # Première ligne plus grande
+        # Première ligne un peu plus grande
         font = F["med"] if i == 0 else F["small"]
         color = (255, 252, 220) if i == 0 else (210, 200, 240)
         draw.text((12, y0), line, fill=color, font=font)
@@ -729,7 +767,7 @@ def render_scene(scene, genre, song, gframe, td):
     S = Cfg.SIZE
     # Le personnage se tient en bas à droite au premier plan
     char_x = int(S * 0.85)
-    char_y = int(S * 0.82)
+    char_y = int(S * 0.84)
     for f in range(scene.duree):
         img = Image.new("RGBA", (S, S))
         draw = ImageDraw.Draw(img)
@@ -743,7 +781,9 @@ def render_scene(scene, genre, song, gframe, td):
         draw_ui(img, scene, f, song, genre)
 
         # 3. Personnage au premier plan (par dessus l'image et l'interface)
-        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre)
+        # La narration audio a ~500ms de silence à la fin, soit environ 12 frames
+        is_narrating_now = f < (scene.duree - 12)
+        draw_char(draw, char_x, char_y, scene.action, scene.emotion, gframe + f, genre, hero="Par défaut", is_narrating=is_narrating_now)
         
         frames.append(cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR))
     return frames
@@ -765,8 +805,51 @@ async def _edge_gen(text,voice,rate,pitch,out):
     comm=edge_tts.Communicate(text=text,voice=voice,rate=rate,pitch=pitch)
     await comm.save(out)
 
-def gen_audio(char, narrations, folder, ph) -> tuple:
-    voice=Cfg.VF if char.genre=="fille" else Cfg.VG
+def gen_audio(char, narrations, theme_name, folder, ph) -> tuple:
+    langue = st.session_state.get("langue", "Français")
+    chosen_narr = st.session_state.get("narrator", "Par défaut")
+    vrate = Cfg.VRATE
+    vpitch = Cfg.VPITCH
+    voice = Cfg.VF
+    lang_code = "fr"
+
+    if langue == "English":
+        lang_code = "en"
+        voice = "en-US-JennyNeural"
+        if "Homme" in chosen_narr:
+            voice = "en-US-GuyNeural"
+            vpitch = "-5Hz"
+        elif "Fille" in chosen_narr:
+            voice = "en-US-AnaNeural"
+            vpitch = "+15Hz"
+        elif "Garçon" in chosen_narr:
+            voice = "en-US-ChristopherNeural"
+            vpitch = "+35Hz"
+    elif langue == "العربية":
+        lang_code = "ar"
+        voice = "ar-SA-ZariyahNeural"
+        if "Homme" in chosen_narr:
+            voice = "ar-SA-HamedNeural"
+            vpitch = "-5Hz"
+        elif "Fille" in chosen_narr:
+            voice = "ar-AE-FatimaNeural"
+            vpitch = "+15Hz"
+        elif "Garçon" in chosen_narr:
+            voice = "ar-SA-HamedNeural"
+            vpitch = "+35Hz"
+    else: # Français
+        lang_code = "fr"
+        voice = "fr-FR-DeniseNeural"
+        if "Homme" in chosen_narr:
+            voice = "fr-FR-HenriNeural"
+            vpitch = "-5Hz"
+        elif "Fille" in chosen_narr:
+            voice = "fr-FR-EloiseNeural"
+            vpitch = "+15Hz"
+        elif "Garçon" in chosen_narr:
+            voice = "fr-FR-HenriNeural"
+            vpitch = "+35Hz"
+        
     from pydub import AudioSegment
     import os, time
     
@@ -785,12 +868,12 @@ def gen_audio(char, narrations, folder, ph) -> tuple:
         if _EDGE_TTS_OK:
             try:
                 import edge_tts, asyncio
-                asyncio.run(_edge_gen(text,voice,Cfg.VRATE,Cfg.VPITCH,part_path))
+                asyncio.run(_edge_gen(text,voice,vrate,vpitch,part_path))
                 ok = True
             except: pass
         if not ok:
             from gtts import gTTS
-            gTTS(text=text,lang="fr",slow=False).save(part_path)
+            gTTS(text=text,lang=lang_code,slow=False).save(part_path)
             
         seg = AudioSegment.from_file(part_path)
         # 500ms pause
@@ -803,9 +886,11 @@ def gen_audio(char, narrations, folder, ph) -> tuple:
     combined_voix.export(vp, format="mp3")
     
     try:
-        ph.info("🎵 Mixage dynamique de l'ambiance...")
-        import urllib.request
-        bgm_url = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
+        ph.info("🎵 Mixage de l'ambiance musicale adaptée...")
+        import urllib.request, hashlib
+        seed_str = f"{char.hero}_{theme_name}"
+        music_id = int(hashlib.md5(seed_str.encode()).hexdigest(), 16) % 17 + 1
+        bgm_url = f"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-{music_id}.mp3"
         bgm_path = os.path.join(folder, "bgm.mp3")
         req = urllib.request.Request(bgm_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=15) as resp, open(bgm_path, 'wb') as f:
@@ -838,218 +923,249 @@ def encode_video(frames,audio,folder,prenom)->str:
 # ─────────────────────────────────────────
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap');
 
 html,body,.stApp,[data-testid="stAppViewContainer"]{
-    background:#f0f2f8!important;
-    font-family:'Inter',system-ui,sans-serif!important;
+    background:#ffffff!important;
+    font-family:'Inter',system-ui,sans-serif;
 }
-[data-testid="stHeader"]{background:#ffffff!important;border-bottom:1px solid #e2e8f0;}
-[data-testid="stSidebar"]{background:#ffffff!important;border-right:1px solid #e2e8f0;padding-top:1.5rem;}
-.block-container{background:transparent!important;padding-top:1.5rem!important;max-width:820px!important;}
+[data-testid="stHeader"]{background:transparent!important;}
+[data-testid="stSidebar"]{background:#ffffff!important;border-right:1px solid #f0f0f0;padding-top:2rem;}
+.block-container{background:transparent!important;padding-top:2rem!important;max-width:840px!important;}
 
-/* Typography — NE PAS toucher les bulles de chat */
-h1,h2,h3{color:#0f172a!important;font-family:'Inter',sans-serif!important;}
-p,div,span,label{font-family:'Inter',sans-serif!important;}
+/* Typography */
+h1,h2,h3{color:#0f172a!important;font-family:'Outfit',sans-serif; letter-spacing:-0.02em;}
+p,div,label{font-family:'Inter',sans-serif;}
+.material-icons, .material-symbols-rounded, .material-symbols-outlined, i[class*="icon"], span[class*="icon"], span[class*="material"], span[class*="stIcon"] {
+    font-family: "Material Symbols Rounded", "Material Icons" !important;
+}
 :not(.ds-bubble-user):not(.ds-bubble-user *):not(.ds-bubble-ai):not(.ds-bubble-ai *) {
     color: inherit;
 }
-/* couleurs générales (sans écraser les bulles) */
 .block-container p, .block-container label,
 .block-container span:not(.ds-time),
 .stMarkdown p { color:#334155; }
 
-/* Hero */
-.hero{background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 60%,#db2777 100%);
-    border-radius:20px;padding:2rem 2rem 1.75rem;text-align:center;margin-bottom:1.75rem;}
-.hero h1{color:#fff!important;font-size:2rem;font-weight:800;margin:0 0 6px!important;}
-.hero p{color:rgba(255,255,255,.85)!important;font-size:.95rem;margin:0!important;}
+/* Hero — Retour de la couleur vibrante pour ancrer le design ! */
+.hero{
+    background:linear-gradient(135deg, #4f46e5 0%, #db2777 100%);
+    border: none;
+    border-radius:24px;
+    padding:2.5rem 2rem;
+    text-align:center;
+    margin-bottom:2.5rem;
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.25);
+}
+.hero h1{
+    color:#ffffff!important;
+    font-size:2.4rem;
+    font-weight:800;
+    margin:0 0 10px!important;
+    background: none;
+    -webkit-background-clip: initial;
+    -webkit-text-fill-color: initial;
+}
+.hero p{
+    color:rgba(255,255,255,0.9)!important;
+    font-size:1.05rem;
+    font-weight: 500;
+    margin:0!important;
+}
 
 /* Cards */
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;
-    padding:1.5rem;margin-bottom:1rem;box-shadow:0 1px 6px rgba(0,0,0,.05);}
-.card-accent{background:#fff;border:2px solid #6366f1;border-radius:16px;
-    padding:1.5rem;margin-bottom:1rem;box-shadow:0 4px 20px rgba(99,102,241,.12);}
+.card{
+    background:#ffffff;
+    border:1px solid rgba(255,255,255,0.8);
+    border-radius:20px;
+    padding:1.75rem;
+    margin-bottom:1.5rem;
+    box-shadow:0 8px 25px rgba(0,0,0,0.06);
+    backdrop-filter: blur(10px);
+}
 
-/* Section labels */
-.sec-label{font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;
-    letter-spacing:.08em;margin-bottom:.5rem;display:block;}
-.sec-title{font-size:1.05rem;font-weight:700;color:#1e293b;margin-bottom:.75rem;
-    display:flex;align-items:center;gap:8px;}
-
-/* Step indicator */
+/* Step indicator - Soft styling */
 .steps-row{display:flex;align-items:center;justify-content:center;
-    gap:0;margin-bottom:2rem;}
-.step-dot{width:34px;height:34px;border-radius:50%;display:flex;
-    align-items:center;justify-content:center;font-weight:800;font-size:13px;
-    border:2px solid #cbd5e1;background:#f8fafc;color:#94a3b8;z-index:1;}
-.step-dot.active{background:#6366f1;border-color:#6366f1;color:#fff;
-    box-shadow:0 0 0 4px rgba(99,102,241,.18);}
-.step-dot.done{background:#22c55e;border-color:#22c55e;color:#fff;}
-.step-line{width:52px;height:2px;background:#e2e8f0;margin-bottom:18px;}
-.step-line.done{background:#22c55e;}
-.step-lbl{font-size:10px;font-weight:700;width:70px;text-align:center;
-    color:#94a3b8!important;margin-top:3px;}
-.step-lbl.active{color:#6366f1!important;}
-.step-lbl.done{color:#16a34a!important;}
-.step-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
+    gap:0;margin-bottom:2.5rem;}
+.step-dot{width:42px;height:42px;border-radius:50%;display:flex;
+    align-items:center;justify-content:center;font-weight:800;font-size:14px;
+    border:2px solid #e2e8f0;background:#ffffff;color:#94a3b8;z-index:1;
+    transition: all 0.3s ease;}
+.step-dot.active{background:#4f46e5;border-color:#4f46e5;color:#ffffff;
+    box-shadow:0 0 0 6px rgba(79,70,229,.12); transform:scale(1.1);}
+.step-dot.done{background:#10b981;border-color:#10b981;color:#ffffff;}
+.step-line{width:70px;height:3px;background:#e2e8f0;margin-bottom:22px; transition: all 0.3s ease;}
+.step-line.done{background:#10b981;}
+.step-lbl{font-size:11px;font-weight:700;width:80px;text-align:center;
+    color:#94a3b8!important;margin-top:6px; letter-spacing:0.04em; text-transform:uppercase;}
+.step-lbl.active{color:#4f46e5!important;}
+.step-lbl.done{color:#10b981!important;}
+.step-col{display:flex;flex-direction:column;align-items:center;}
 
 /* ══════════════════════════════════════
    CHAT DEEPSEEK — Design épuré
    ══════════════════════════════════════ */
-
 [data-testid="stMarkdownContainer"],
 [data-testid="stMarkdownContainer"] > div { width: 100% !important; }
 
 /* — Bulle IA (gauche) — */
 .ds-msg-ai {
-    display: flex; align-items: flex-start; gap: 10px; margin: 8px 0;
+    display: flex; align-items: flex-start; gap: 12px; margin: 12px 0;
 }
 .ds-avatar-ai {
-    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-    background: linear-gradient(135deg,#4f46e5,#7c3aed);
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.82rem; margin-top: 2px; color: white;
+    font-size: 1rem; margin-top: 2px; color: white;
+    box-shadow: 0 4px 10px rgba(99,102,241,0.25);
 }
 .ds-bubble-ai {
-    background: #f8fafc;
-    border: 1px solid #e8eaf0;
-    border-radius: 4px 16px 16px 16px;
-    padding: 10px 15px;
-    font-size: 0.91rem; line-height: 1.65;
-    max-width: 85%; word-break: break-word;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 4px 20px 20px 20px;
+    padding: 12px 18px;
+    font-size: 0.94rem; line-height: 1.6;
+    max-width: 88%; word-break: break-word;
+    box-shadow: 0 8px 24px rgba(149,157,165,0.06);
 }
-.ds-bubble-ai, .ds-bubble-ai * { color: #1e293b !important; }
+.ds-bubble-ai, .ds-bubble-ai * { color: #334155 !important; }
 
 /* — Bulle Parent (droite) — */
 .ds-user-wrap {
     display: flex; flex-direction: column; align-items: flex-end; width: 100%;
+    margin: 12px 0;
 }
 .ds-bubble-user {
-    background: #4f46e5 !important;
-    border-radius: 16px 4px 16px 16px !important;
-    padding: 10px 15px !important;
-    font-size: 0.91rem !important; line-height: 1.65 !important;
-    max-width: 100% !important;
+    background: linear-gradient(135deg,#3b82f6,#4f46e5) !important;
+    border-radius: 20px 4px 20px 20px !important;
+    padding: 12px 18px !important;
+    font-size: 0.94rem !important; line-height: 1.6 !important;
+    max-width: 90% !important;
+    box-shadow: 0 8px 24px rgba(79,70,229,0.15) !important;
     word-break: break-word !important; display: inline-block !important;
 }
 .ds-bubble-user, .ds-bubble-user * {
     color: #ffffff !important; font-family: 'Inter', sans-serif !important;
 }
+.ds-time {
+    font-size: 0.65rem; opacity: 0.5; margin-top: 6px;
+    display: block; color: #94a3b8 !important; font-weight:500;
+}
+.ds-user-wrap .ds-time { text-align: right; }
 
-/* — Cadre principal du chat — */
-/* Cible le container border=True de Streamlit */
+/* — Cadre principal du chat — premium style */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 16px !important;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+    border: 1px solid #f1f5f9 !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.04) !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
-/* Cadre interne (sans border) pour le scroll : retire le style par défaut */
 [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlockBorderWrapper"] {
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
-    padding: 0 !important;
+    background: transparent !important;
 }
-/* Ajustement du padding interne du chat frame */
 .chat-frame-inner {
-    padding: 14px 16px 10px;
+    padding: 20px 24px 10px;
 }
-/* Séparateur entre la section messages et l'input */
-.chat-input-sep {
-    border: none; border-top: 1.5px solid #f1f5f9;
-    margin: 6px 0 0;
-}
-/* Conteneur de l'input en bas du cadre */
 .chat-input-wrap {
     background: #f8fafc;
-    padding: 10px 14px 12px;
-    border-top: 1px solid #eff0f3;
+    padding: 14px 20px 16px;
+    border-top: 1px solid #f1f5f9;
 }
-.ds-time {
-    font-size: 0.62rem; opacity: 0.45; margin-top: 3px;
-    display: block; color: #94a3b8 !important;
-}
-.ds-user-wrap .ds-time { text-align: right; }
 
-/* En-tête chat */
+/* En-tête chat — refined */
 .chat-section-header {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 14px;
     border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 12px; margin-bottom: 10px;
+    padding-bottom: 16px; margin-bottom: 8px;
 }
 .chat-section-header .csh-icon {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    width: 42px; height: 42px; border-radius: 12px;
+    background: #eef2ff;
+    color: #4f46e5;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem; flex-shrink: 0;
+    font-size: 1.3rem; flex-shrink: 0;
 }
 .chat-section-header .csh-title {
-    font-size: 0.95rem; font-weight: 700; color: #1e293b !important; margin: 0 !important;
+    font-size: 1.05rem; font-weight: 800; font-family:'Outfit',sans-serif; color: #0f172a !important; margin: 0 !important;
 }
 .chat-section-header .csh-sub {
-    font-size: 0.75rem; color: #94a3b8 !important; margin-top: 1px;
+    font-size: 0.8rem; color: #64748b !important; margin-top: 2px;
+}
+
+/* Sidebar */
+.sb-title{font-family:'Outfit',sans-serif; font-size:1.1rem;font-weight:700;color:#0f172a;margin-bottom:1rem;
+    display:flex;align-items:center;gap:8px;}
+.sb-step{font-size:.82rem;color:#475569;padding:6px 0;display:flex;
+    align-items:flex-start;gap:8px; border-bottom: 1px solid #f1f5f9;}
+
+/* Buttons — Beautiful and tactile */
+.stButton>button{
+    border-radius:99px!important;
+    font-weight:600!important;
+    font-size:.9rem!important;
+    padding: 0.4rem 1rem!important;
+    transition:all .25s cubic-bezier(0.4, 0, 0.2, 1)!important;
+    background:#ffffff!important;
+    border:1px solid #cbd5e1!important;
+    color:#475569!important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02)!important;
+}
+.stButton>button:hover{
+    background:#f8fafc!important;
+    border-color:#94a3b8!important;
+    transform:translateY(-1px)!important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04)!important;
+}
+.stButton>button[kind="primary"]{
+    background:linear-gradient(135deg,#4f46e5,#7c3aed)!important;
+    color:#ffffff!important;border:none!important;
+    box-shadow:0 6px 15px rgba(79,70,229,.25)!important;
+}
+.stButton>button[kind="primary"]:hover{
+    transform:translateY(-3px)!important;
+    box-shadow:0 10px 25px rgba(79,70,229,.4)!important;
+}
+
+/* Inputs — Pill shapes and soft focus */
+.stTextArea>div>div>textarea,.stTextInput>div>div>input, .stSelectbox>div>div>div {
+    background:#ffffff!important;
+    border:1.5px solid #e2e8f0!important;
+    border-radius:14px!important;
+    font-size:.95rem!important;
+    color:#1e293b!important;
+    transition: all 0.2s ease!important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.01)!important;
+}
+.stTextArea>div>div>textarea:focus,.stTextInput>div>div>input:focus, .stSelectbox>div>div>div:focus-within{
+    border-color:#4f46e5!important;
+    box-shadow:0 0 0 4px rgba(79,70,229,.1)!important;
+}
+
+/* Progress */
+.stProgress>div>div>div{
+    background:linear-gradient(90deg,#4f46e5,#db2777)!important;
+    border-radius: 99px!important;
+}
+.stProgress>div>div {
+    border-radius: 99px!important;
+    background:#f1f5f9!important;
+}
+
+/* Misc */
+hr{border-color:#f1f5f9!important;}
+.stAlert{border-radius:16px!important; border:none!important;}
+[data-testid="stExpander"]{
+    background: #ffffff!important;
+    border-radius: 16px!important;
+    border: 1px solid #f1f5f9!important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02)!important;
 }
 
 
-
-/* Char card */
-.char-pill{display:inline-flex;align-items:center;gap:6px;
-    background:#ede9fe;border:1px solid #c4b5fd;border-radius:99px;
-    padding:4px 12px;font-size:.8rem;font-weight:700;color:#5b21b6;margin:3px 2px;}
-.danger-pill{background:#fef2f2;border:1px solid #fca5a5;
-    border-radius:99px;padding:4px 12px;font-size:.8rem;font-weight:700;color:#dc2626;
-    display:inline-flex;align-items:center;gap:5px;margin:3px 2px;}
-
-/* Tip row */
-.tip-row{display:flex;gap:8px;flex-wrap:wrap;margin:.5rem 0;}
-.tip-chip{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
-    padding:5px 10px;font-size:.8rem;color:#1e40af;font-weight:600;}
-
-/* Song part */
-.song-blk{background:#fafafa;border:1px solid #e2e8f0;border-radius:10px;
-    padding:.875rem 1rem;margin-bottom:6px;}
-.song-lbl{font-size:.68rem;font-weight:800;color:#6366f1;text-transform:uppercase;
-    letter-spacing:.06em;margin-bottom:3px;}
-.song-txt{font-size:.86rem;color:#475569;line-height:1.65;font-style:italic;}
-
-/* Sidebar */
-.sb-title{font-size:.95rem;font-weight:800;color:#1e293b;margin-bottom:.5rem;
-    display:flex;align-items:center;gap:8px;}
-.sb-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
-    padding:8px 10px;font-size:.78rem;color:#1d4ed8;margin-top:.5rem;line-height:1.5;}
-.sb-step{font-size:.76rem;color:#475569;padding:3px 0;display:flex;
-    align-items:flex-start;gap:6px;}
-
-/* Buttons */
-.stButton>button{border-radius:10px!important;font-weight:600!important;
-    font-size:.86rem!important;transition:all .2s!important;
-    background:#e2e8f0!important;border:1px solid #cbd5e1!important;color:#334155!important;}
-.stButton>button:hover{background:#cbd5e1!important;border-color:#e2e8f0!important;}
-.stButton>button[kind="primary"]{
-    background:linear-gradient(135deg,#6366f1,#8b5cf6)!important;
-    color:#fff!important;border:none!important;
-    box-shadow:0 3px 12px rgba(99,102,241,.3)!important;}
-.stButton>button[kind="primary"]:hover{
-    transform:translateY(-2px)!important;
-    box-shadow:0 6px 18px rgba(99,102,241,.4)!important;}
-
-/* Inputs */
-.stTextArea>div>div>textarea,.stTextInput>div>div>input{
-    background:#fff!important;border:1.5px solid #e2e8f0!important;
-    border-radius:10px!important;font-size:.93rem!important;color:#1e293b!important;}
-.stTextArea>div>div>textarea:focus,.stTextInput>div>div>input:focus{
-    border-color:#6366f1!important;
-    box-shadow:0 0 0 3px rgba(99,102,241,.1)!important;}
-
-/* Progress */
-.stProgress>div>div>div{background:linear-gradient(90deg,#6366f1,#8b5cf6)!important;}
-
-/* Misc */
-hr{border-color:#e2e8f0!important;}
-.stAlert{border-radius:12px!important;}
 #MainMenu,footer{visibility:hidden;}
 </style>
 """
@@ -1058,11 +1174,13 @@ hr{border-color:#e2e8f0!important;}
 #  HELPERS UI
 # ─────────────────────────────────────────
 def stepper(cur:int)->str:
-    labels=["📝 La bêtise","🎬 Scénario","🎉 Vidéo"]
-    icons=["📝","🎬","🎉"]
+    labels=["La bêtise","Scénario","Vidéo"]
+    icons=["<span class='material-symbols-rounded' style='font-size:18px;'>edit_document</span>",
+           "<span class='material-symbols-rounded' style='font-size:18px;'>movie</span>",
+           "<span class='material-symbols-rounded' style='font-size:18px;'>celebration</span>"]
     parts=[]
     for i in range(1,4):
-        if i<cur:     dc,lc2,nt="done","done","✓"
+        if i<cur:     dc,lc2,nt="done","done","<span class='material-symbols-rounded' style='font-size:18px;'>check</span>"
         elif i==cur:  dc,lc2,nt="active","active",icons[i-1]
         else:         dc,lc2,nt="","",str(i)
         parts.append(f'<div class="step-col"><div class="step-dot {dc}">{nt}</div>'
@@ -1070,7 +1188,7 @@ def stepper(cur:int)->str:
         if i<3:
             ld="done"if i<cur else ""
             parts.append(f'<div class="step-line {ld}"></div>')
-    return f'<div class="steps-row">{"".join(parts)}</div>'
+    return f'<div class="steps-row">{".".join(parts)}</div>'
 
 
 # ─────────────────────────────────────────
@@ -1082,58 +1200,64 @@ def main():
     st.markdown(CSS,unsafe_allow_html=True)
 
     # ── SESSION ──
-    defaults={"step":1,"api_key":"","betise":"","val":None,
+    defaults={"step":1,"api_key":"","betise":"","val":None,"langue":"Français",
               "scenario":None,"char":None,"song":None,"narrations":[],"img_prompts":[],
-              "theme":"general","show_key":False,"analyzing":False,
-              "confirmed_yes":False,"confirmed_no":False,
+              "theme":"general","analyzing":False,"show_key":False,
               "confirmed_yes":False,"confirmed_no":False,
               "chat_history":[],"editing_index":None,"editing_content":""}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 
     # ══════════════════════════════════════
-    #  SIDEBAR — CLÉ API GROQ
+    #  SIDEBAR
     # ══════════════════════════════════════
     with st.sidebar:
-        st.markdown('<div class="sb-title">🔑 Clé API Groq</div>',unsafe_allow_html=True)
-        kt="text"if st.session_state.show_key else"password"
-        key=st.text_input("Clé",value=st.session_state.api_key,type=kt,
-            placeholder="gsk_...",label_visibility="collapsed")
-        st.session_state.api_key=key
-        c1,c2=st.columns([3,1])
-        with c2:
-            if st.button("👁"if not st.session_state.show_key else"🙈",key="sbv",help="Afficher/Masquer"):
-                st.session_state.show_key=not st.session_state.show_key; st.rerun()
-        valid_key=bool(key and key.strip().startswith("gsk_"))
-        if valid_key: st.success("✅ Clé valide")
-        else: st.warning("Clé non renseignée")
+        # — Clé API —
+        st.markdown(
+            "<div style='background:linear-gradient(135deg,#f5f3ff,#ede9fe);"
+            "border:1px solid #c4b5fd;border-radius:12px;padding:10px 14px;"
+            "margin-bottom:12px;display:flex;align-items:center;gap:8px;'>"
+            "<span class='material-symbols-rounded' style='color:#7c3aed;font-size:1.2rem;'>key</span>"
+            "<span style='font-size:0.95rem;font-weight:700;color:#1e293b;'>Clé API Groq</span>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        key = st.text_input("Clé", value=st.session_state.api_key, type="password",
+            placeholder="gsk_...", label_visibility="collapsed")
+        st.session_state.api_key = key
+        valid_key = bool(key and key.strip().startswith("gsk_"))
+        if valid_key: st.success("Clé valide", icon=":material/check_circle:")
+        else: st.warning("Clé manquante", icon=":material/warning:")
 
-        st.markdown('<div class="sb-note">🆓 Clé <b>100% gratuite</b> sur<br>'
-            '<a href="https://console.groq.com" target="_blank">console.groq.com</a><br>'
-            '→ <b>API Keys → Create API Key</b><br><br>'
-            '🔒 Jamais sauvegardée.</div>',unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='background:linear-gradient(135deg,#ecfdf5,#d1fae5);"
+            "border:1px solid #6ee7b7;border-radius:12px;padding:10px 14px;"
+            "margin-bottom:12px;display:flex;align-items:center;gap:8px;'>"
+            "<span class='material-symbols-rounded' style='color:#059669;font-size:1.2rem;'>info</span>"
+            "<span style='font-size:0.95rem;font-weight:700;color:#1e293b;'>Comment ça marche ?</span>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        for ic, txt in [
+            ("<span class='material-symbols-rounded' style='font-size:1.1rem;vertical-align:middle;color:#7c3aed;'>looks_one</span>","<b>Racontez</b> la bêtise de l'enfant dans le chat"),
+            ("<span class='material-symbols-rounded' style='font-size:1.1rem;vertical-align:middle;color:#7c3aed;'>looks_two</span>","<b>L'IA analyse</b> et propose un scénario"),
+            ("<span class='material-symbols-rounded' style='font-size:1.1rem;vertical-align:middle;color:#7c3aed;'>looks_3</span>","<b>Personnalisez</b> (Héros, Musique...)"),
+            ("<span class='material-symbols-rounded' style='font-size:1.1rem;vertical-align:middle;color:#7c3aed;'>looks_4</span>","<b>Téléchargez</b> le dessin animé !"),
+        ]:
+            st.markdown(f'<div class="sb-step">{ic} <span style="line-height:1.5;">{txt}</span></div>', unsafe_allow_html=True)
 
-        st.markdown("---")
-        st.markdown("**📋 Guide rapide**")
-        for i,(ic,txt) in enumerate([
-            ("1️⃣","Copie ta clé Groq ci-dessus"),
-            ("2️⃣","Décris la bêtise de ton enfant"),
-            ("3️⃣","L'IA analyse et génère"),
-            ("4️⃣","Télécharge la vidéo MP4"),
-        ],1):
-            st.markdown(f'<div class="sb-step">{ic} <span>{txt}</span></div>',unsafe_allow_html=True)
-
-        if st.session_state.step>1:
+        if st.session_state.step > 1:
             st.markdown("---")
-            if st.button("🔄 Recommencer",use_container_width=True):
-                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme","confirmed_yes","confirmed_no","chat_history","editing_index","editing_content"]:
+            if st.button(":material/refresh: Recommencer", use_container_width=True):
+                for k in ["step","betise","val","scenario","char","song","narrations","img_prompts","theme","confirmed_yes","confirmed_no","chat_history","editing_index","editing_content"]:
                     st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k in ["narrations","img_prompts","chat_history"] else "" if k=="betise" else False if k in ["confirmed_yes","confirmed_no"] else None
                 st.rerun()
 
     # ── HÉRÔ ──
     st.markdown("""<div class="hero">
-        <h1>🎬 Studio Animé Éducatif</h1>
-        <p>Transforme la bêtise de ton enfant en dessin animé éducatif personnalisé ✨</p>
+        <h1><span class="material-symbols-rounded" style="font-size: 2.2rem; vertical-align: bottom;">movie</span> Studio Animé Éducatif</h1>
+        <p>Transforme la bêtise de ton enfant en dessin animé éducatif personnalisé <span class="material-symbols-rounded" style="font-size: 1.1rem; vertical-align: middle;">auto_awesome</span></p>
     </div>""",unsafe_allow_html=True)
 
     st.markdown(stepper(st.session_state.step),unsafe_allow_html=True)
@@ -1152,7 +1276,7 @@ def main():
         def ds_ai_bubble(content, ts=""):
             return (
                 '<div class="ds-msg-ai">'
-                '<div class="ds-avatar-ai">🤖</div>'
+                '<div class="ds-avatar-ai"><span class="material-symbols-rounded" style="color:white;font-size:1.1rem;">smart_toy</span></div>'
                 '<div>'
                 f'<div class="ds-bubble-ai">{content}</div>'
                 + (f'<span class="ds-time">{ts}</span>' if ts else '') +
@@ -1162,7 +1286,7 @@ def main():
         # ─ EN-TÊTE (hors cadre) ─
         st.markdown(
             '<div class="chat-section-header">'
-            '<div class="csh-icon">🎓</div>'
+            '<div class="csh-icon"><span class="material-symbols-rounded" style="color:white;font-size:1.4rem;">school</span></div>'
             '<div>'
             '<div class="csh-title">Assistant Pédagogique</div>'
             '<div class="csh-sub">Discutez librement · Détection automatique des situations de danger</div>'
@@ -1406,19 +1530,21 @@ def main():
             _bg1, _bg2 = st.columns([3, 1])
             with _bg1:
                 if st.button(
-                    "🎬  GÉNÉRER LE DESSIN ANIMÉ ÉDUCATIF !",
+                    ":material/movie: GÉNÉRER LE DESSIN ANIMÉ ÉDUCATIF !",
                     type="primary", use_container_width=True, key="btn_gen_video"
                 ):
-                    with st.spinner("🎵 Création du scénario animé…"):
+                    with st.spinner("Création du scénario animé…"):
                         try:
                             _data = scenario_ai(
                                 st.session_state.betise, _v, st.session_state.api_key)
                             st.session_state.scenario = _data
-                            _ch, _sg, _nar, _ipr = parse_scenario(_data)
+                            _ch, _sg, _nar, _ipr, _ep, _ls = parse_scenario(_data)
                             st.session_state.char  = _ch
                             st.session_state.song  = _sg
                             st.session_state.narrations  = _nar
                             st.session_state.img_prompts = _ipr
+                            st.session_state.emotions_personnage = _ep
+                            st.session_state.lieux_scenes = _ls
                             st.session_state.step = 2
                             st.rerun()
                         except json.JSONDecodeError:
@@ -1426,8 +1552,8 @@ def main():
                         except Exception as _e:
                             st.error(f"Erreur : {_e}")
             with _bg2:
-                if st.button("🔄 Réinterpréter", use_container_width=True, key="btn_reinterp"):
-                    with st.spinner("🤖 Nouvelle réflexion…"):
+                if st.button(":material/refresh: Réinterpréter", use_container_width=True, key="btn_reinterp"):
+                    with st.spinner("Nouvelle réflexion…"):
                         import time; time.sleep(1)
                         try:
                             _r3 = chat_ai(st.session_state.betise, st.session_state.api_key, st.session_state.val)
@@ -1449,93 +1575,173 @@ def main():
                 "</div>",
                 unsafe_allow_html=True
             )
-            st.button("🎬  Générer le dessin animé éducatif",
+            st.button(":material/movie: Générer le dessin animé éducatif",
                       type="secondary", use_container_width=True,
                       key="btn_gen_video", disabled=True)
 
-        # ══════════════════════════════════════════════════
-        # SUGGESTIONS RAPIDES (déclenchent l'analyse auto)
-        # ─────────────────────────────────────────
+        # ══ SUGGESTIONS RAPIDES ══
+        st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
         st.markdown(
-            "<div style='margin-top:16px;margin-bottom:8px;'>"
-            "<span style='font-size:0.75rem;font-weight:700;color:#64748b;"
-            "text-transform:uppercase;letter-spacing:0.06em;'>💡 Exemples rapides pour commencer</span>"
-            "</div>",
+            "<style>"
+            "#sect-examples ~ div [data-testid='stVerticalBlockBorderWrapper'],"
+            "#sect-examples ~ div [data-testid='stVerticalBlockBorderWrapper'] > [data-testid='stVerticalBlock']{"
+            "background:linear-gradient(145deg,rgba(124,58,237,0.18),rgba(168,85,247,0.10))!important;"
+            "border-color:#a78bfa!important;border-width:1.5px!important;"
+            "backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;}"
+            "#sect-examples ~ div [data-testid='stVerticalBlockBorderWrapper']{"
+            "box-shadow:0 4px 20px rgba(124,58,237,0.14)!important;}"
+            "</style><span id='sect-examples'></span>",
             unsafe_allow_html=True
         )
-        def set_example(txt, thm):
-            st.session_state[_input_key] = txt
-            st.session_state.theme = thm
+        with st.container(border=True):
+            st.markdown(
+                "<div style='background:linear-gradient(135deg,#7c3aed,#a855f7);"
+                "border-radius:8px;padding:12px 16px;margin:-16px -16px 14px -16px;'>"
+                "<span class='material-symbols-rounded' style='color:#fff;font-size:1.1rem;vertical-align:middle;margin-right:6px;'>lightbulb</span>"
+                "<span style='font-size:0.9rem;font-weight:700;color:#fff;'>Exemples rapides</span>"
+                "<span style='font-size:0.75rem;color:rgba(255,255,255,0.8);margin-left:8px;'>— cliquez pour démarrer</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+            def set_example(txt, thm):
+                st.session_state[_input_key] = txt
+                st.session_state.theme = thm
+            for i in range(0, len(EXAMPLES), 3):
+                cols = st.columns(3)
+                for j in range(3):
+                    idx = i + j
+                    if idx < len(EXAMPLES):
+                        ex = EXAMPLES[idx]
+                        with cols[j]:
+                            st.button(
+                                f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
+                                use_container_width=True, help=ex["text"],
+                                on_click=set_example, args=(ex["text"], ex["theme"])
+                            )
 
-        for i in range(0, len(EXAMPLES), 3):
-            cols = st.columns(3)
-            for j in range(3):
-                idx = i + j
-                if idx < len(EXAMPLES):
-                    ex = EXAMPLES[idx]
-                    with cols[j]:
-                        st.button(
-                            f"{ex['icon']} {ex['label']}", key=f"ex_{idx}",
-                            use_container_width=True, help=ex["text"],
-                            on_click=set_example, args=(ex["text"], ex["theme"])
-                        )
 
 
 
 
-
-        # ══════════════════════════════════════════════════
-        # CHOIX DU PERSONNAGE
-        # ─────────────────────────────────────────
+        # ══ CHOIX DU PERSONNAGE ══
+        st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
         st.markdown(
-            "<div style='margin-top:20px;margin-bottom:8px;'>"
-            "<span style='font-size:0.75rem;font-weight:700;color:#64748b;"
-            "text-transform:uppercase;letter-spacing:0.06em;'>🦸 Personnage de la vidéo</span><br>"
-            "<span style='font-size:0.8rem;color:#8492a6;'>"
-            "Cliquez pour choisir un héros spécifique, ou laissez l'IA choisir par défaut !"
-            "</span>"
-            "</div>",
+            "<style>"
+            "#sect-heroes ~ div [data-testid='stVerticalBlockBorderWrapper'],"
+            "#sect-heroes ~ div [data-testid='stVerticalBlockBorderWrapper'] > [data-testid='stVerticalBlock']{"
+            "background:linear-gradient(145deg,rgba(37,99,235,0.18),rgba(59,130,246,0.10))!important;"
+            "border-color:#60a5fa!important;border-width:1.5px!important;"
+            "backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;}"
+            "#sect-heroes ~ div [data-testid='stVerticalBlockBorderWrapper']{"
+            "box-shadow:0 4px 20px rgba(37,99,235,0.14)!important;}"
+            "</style><span id='sect-heroes'></span>",
             unsafe_allow_html=True
         )
+        with st.container(border=True):
+            st.markdown(
+                "<div style='background:linear-gradient(135deg,#2563eb,#3b82f6);"
+                "border-radius:8px;padding:12px 16px;margin:-16px -16px 14px -16px;'>"
+                "<span class='material-symbols-rounded' style='color:#fff;font-size:1.1rem;vertical-align:middle;margin-right:6px;'>sports_martial_arts</span>"
+                "<span style='font-size:0.9rem;font-weight:700;color:#fff;'>Personnage de la vidéo</span>"
+                "<span style='font-size:0.75rem;color:rgba(255,255,255,0.8);margin-left:8px;'>— l'IA ou votre choix</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+            HEROES = [
+                {"icon": ":material/smart_toy:", "label": "Par défaut (L'IA choisit)"},
+                {"icon": ":material/face_3:", "label": "Petite fille"},
+                {"icon": ":material/face_6:", "label": "Petit garçon"},
+                {"icon": ":material/bug_report:", "label": "Spiderman"},
+                {"icon": ":material/flight:", "label": "Superman"},
+                {"icon": ":material/pest_control_rodent:", "label": "Tom & Jerry"},
+                {"icon": ":material/child_care:", "label": "Masha"},
+                {"icon": ":material/backpack:", "label": "Dora"},
+                {"icon": ":material/ac_unit:", "label": "Elsa"},
+            ]
+            def append_hero(hero_name):
+                current = st.session_state.get(_input_key, "")
+                if "Par défaut" in hero_name:
+                    addon = "Laissez l'IA choisir le personnage."
+                else:
+                    addon = f"Le héros de l'histoire sera {hero_name}."
+                if current:
+                    if not current.endswith(" "): current += " "
+                    st.session_state[_input_key] = current + addon
+                else:
+                    st.session_state[_input_key] = addon
+            for i in range(0, len(HEROES), 3):
+                cols = st.columns(3)
+                for j in range(3):
+                    idx = i + j
+                    if idx < len(HEROES):
+                        h = HEROES[idx]
+                        with cols[j]:
+                            st.button(
+                                f"{h['icon']} {h['label']}", key=f"hero_{idx}",
+                                use_container_width=True, on_click=append_hero, args=(h["label"],)
+                            )
 
-        HEROES = [
-            {"icon": "🤖", "label": "Par défaut (L'IA choisit)"},
-            {"icon": "👧", "label": "Petite fille"},
-            {"icon": "👦", "label": "Petit garçon"},
-            {"icon": "🕸️", "label": "Spiderman"},
-            {"icon": "🦸‍♂️", "label": "Superman"},
-            {"icon": "🐭", "label": "Tom & Jerry"},
-            {"icon": "🐻", "label": "Masha"},
-            {"icon": "🎒", "label": "Dora"},
-            {"icon": "❄️", "label": "Elsa"},
-        ]
+        # ══ CHOIX DU NARRATEUR ══
+        st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<style>"
+            "#sect-narrator ~ div [data-testid='stVerticalBlockBorderWrapper'],"
+            "#sect-narrator ~ div [data-testid='stVerticalBlockBorderWrapper'] > [data-testid='stVerticalBlock']{"
+            "background:linear-gradient(145deg,rgba(219,39,119,0.18),rgba(236,72,153,0.10))!important;"
+            "border-color:#f472b6!important;border-width:1.5px!important;"
+            "backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;}"
+            "#sect-narrator ~ div [data-testid='stVerticalBlockBorderWrapper']{"
+            "box-shadow:0 4px 20px rgba(219,39,119,0.14)!important;}"
+            "</style><span id='sect-narrator'></span>",
+            unsafe_allow_html=True
+        )
+        with st.container(border=True):
+            st.markdown(
+                "<div style='background:linear-gradient(135deg,#db2777,#ec4899);"
+                "border-radius:8px;padding:12px 16px;margin:-16px -16px 14px -16px;'>"
+                "<span class='material-symbols-rounded' style='color:#fff;font-size:1.1rem;vertical-align:middle;margin-right:6px;'>mic</span>"
+                "<span style='font-size:0.9rem;font-weight:700;color:#fff;'>Voix du Narrateur</span>"
+                "<span style='font-size:0.75rem;color:rgba(255,255,255,0.8);margin-left:8px;'>— qui raconte l'histoire</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+            VOICES = ["Par défaut (selon l'enfant)", "Femme (Douce)", "Homme (Chaleureux)", "Petite Fille", "Petit Garçon"]
+            if "narrator" not in st.session_state:
+                st.session_state.narrator = VOICES[0]
+            st.session_state.narrator = st.selectbox("Voix du narrateur", VOICES,
+                index=VOICES.index(st.session_state.narrator) if st.session_state.narrator in VOICES else 0,
+                label_visibility="collapsed")
 
-        def append_hero(hero_name):
-            current = st.session_state.get(_input_key, "")
-            
-            if "Par défaut" in hero_name:
-                addon = "Laissez l'IA choisir le personnage."
-            else:
-                addon = f"Le héros de l'histoire sera {hero_name}."
-                
-            if current:
-                if not current.endswith(" "):
-                    current += " "
-                st.session_state[_input_key] = current + addon
-            else:
-                st.session_state[_input_key] = addon
-
-        for i in range(0, len(HEROES), 3):
-            cols = st.columns(3)
-            for j in range(3):
-                idx = i + j
-                if idx < len(HEROES):
-                    h = HEROES[idx]
-                    with cols[j]:
-                        st.button(
-                            f"{h['icon']} {h['label']}", key=f"hero_{idx}",
-                            use_container_width=True, on_click=append_hero, args=(h["label"],)
-                        )
+        # ══ CHOIX DE LA LANGUE ══
+        st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<style>"
+            "#sect-lang ~ div [data-testid='stVerticalBlockBorderWrapper'],"
+            "#sect-lang ~ div [data-testid='stVerticalBlockBorderWrapper'] > [data-testid='stVerticalBlock']{"
+            "background:linear-gradient(145deg,rgba(16,185,129,0.18),rgba(52,211,153,0.10))!important;"
+            "border-color:#34d399!important;border-width:1.5px!important;"
+            "backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;}"
+            "#sect-lang ~ div [data-testid='stVerticalBlockBorderWrapper']{"
+            "box-shadow:0 4px 20px rgba(16,185,129,0.14)!important;}"
+            "</style><span id='sect-lang'></span>",
+            unsafe_allow_html=True
+        )
+        with st.container(border=True):
+            st.markdown(
+                "<div style='background:linear-gradient(135deg,#10b981,#34d399);"
+                "border-radius:8px;padding:12px 16px;margin:-16px -16px 14px -16px;'>"
+                "<span class='material-symbols-rounded' style='color:#fff;font-size:1.1rem;vertical-align:middle;margin-right:6px;'>language</span>"
+                "<span style='font-size:0.9rem;font-weight:700;color:#fff;'>Langue de l'histoire</span>"
+                "<span style='font-size:0.75rem;color:rgba(255,255,255,0.8);margin-left:8px;'>— audio et texte</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+            LANGS = ["Français", "English", "العربية"]
+            if "langue" not in st.session_state:
+                st.session_state.langue = LANGS[0]
+            st.session_state.langue = st.selectbox("Langue de l'histoire", LANGS,
+                index=LANGS.index(st.session_state.langue) if st.session_state.langue in LANGS else 0,
+                label_visibility="collapsed")
 
     # ══════════════════════════════════════
     #  ÉTAPE 2 — SCÉNARIO
@@ -1562,7 +1768,7 @@ def main():
                 <div style="font-size:1.8rem;font-weight:800;color:#f8fafc; margin-bottom: 4px;">{char.prenom} <span style="font-size:1.1rem; color:#cbd5e1; font-weight:500;">({char.age} ans)</span></div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
                     <span style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.5); border-radius: 99px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; color: #fca5a5;">⚠️ Danger : {data.get('danger_court','')}</span>
-                    <span style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); border-radius: 99px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; color: #a5b4fc;">🎨 Ambiance : {data.get('ambiance_couleur','')}</span>
+                    <span style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); border-radius: 99px; padding: 4px 12px; font-size: 0.8rem; font-weight: 600; color: #a5b4fc;">🦸‍♂️ Héros : {char.hero if char.hero and char.hero != "Par défaut" else "Choix libre de l'IA"}</span>
                 </div>
             </div>
             <div style="flex:1; min-width: 200px; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);">
@@ -1572,57 +1778,45 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("<h3 style='font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 16px;'>🎬 Démarche du scénario (Aperçu des scènes)</h3>", unsafe_allow_html=True)
-
         # Storyboard visuel complet
-        scenes_titles = ["1. Introduction", "2. La vie normale", "3. Découverte", "4. Tentation", "5. Hésitation",
-                         "6. ⚠️ DANGER", "7. Suspense...", "8. 💥 L'ACTION", "9. Aïe aïe aïe!", "10. Peur",
-                         "11. Pourquoi?", "12. Explication", "13. Compréhension", "14. Promesse", "15. Conclusion"]
-        
-        narrations = st.session_state.narrations
-        
-        timeline_html = "<div style='display:flex; flex-direction:column; gap: 10px; margin-bottom: 24px;'>"
-        for idx in range(min(15, len(narrations))):
-            scene_tit = scenes_titles[idx] if idx < len(scenes_titles) else f"Scène {idx+1}"
-            narr_text = narrations[idx]
+        with st.expander("🎬 Démarche du scénario (Aperçu des scènes)", expanded=True):
+            scenes_titles = ["1. Introduction", "2. La vie normale", "3. Découverte", "4. Tentation", "5. Hésitation",
+                             "6. ⚠️ DANGER", "7. Suspense...", "8. 💥 L'ACTION", "9. Aïe aïe aïe!", "10. Peur",
+                             "11. Pourquoi?", "12. Explication", "13. Compréhension", "14. Promesse", "15. Conclusion"]
             
-            # Couleurs dynamiques selon l'intensité narrative
-            if idx in [5, 7, 8]:
-                border_color = "#ef4444" # Rouge (Action/Danger)
-                bg_color = "#fef2f2"
-            elif idx in [10, 11, 12]:
-                border_color = "#22c55e" # Vert (Leçon/Compréhension)
-                bg_color = "#f0fdf4"
-            else:
-                border_color = "#6366f1" # Bleu (Normal)
-                bg_color = "#f8fafc"
+            narrations = st.session_state.narrations
+            
+            timeline_html = "<div style='display:flex; flex-direction:column; gap: 10px; margin-bottom: 10px;'>"
+            for idx in range(min(15, len(narrations))):
+                scene_tit = scenes_titles[idx] if idx < len(scenes_titles) else f"Scène {idx+1}"
+                narr_text = narrations[idx]
                 
-            timeline_html += f"""<div style="border: 1px solid #e2e8f0; border-left: 5px solid {border_color}; background: {bg_color}; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 4px;">
+                # Couleurs dynamiques selon l'intensité narrative
+                if idx in [5, 7, 8]:
+                    border_color = "#ef4444" # Rouge (Action/Danger)
+                    bg_color = "#fef2f2"
+                elif idx in [10, 11, 12]:
+                    border_color = "#22c55e" # Vert (Leçon/Compréhension)
+                    bg_color = "#f0fdf4"
+                else:
+                    border_color = "#6366f1" # Bleu (Normal)
+                    bg_color = "#f8fafc"
+                    
+                timeline_html += f"""<div style="border: 1px solid #e2e8f0; border-left: 5px solid {border_color}; background: {bg_color}; border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 4px;">
 <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">{scene_tit}</div>
 <div style="font-size: 0.95rem; font-weight: 500; color: #1e293b; font-style: italic;">💬 "{narr_text}"</div>
 </div>"""
-        timeline_html += "</div>"
-        
-        st.markdown(timeline_html, unsafe_allow_html=True)
-        
-        # Chanson dans l'expander (replié par défaut pour plus de propreté)
-        with st.expander("🎵 Voir les paroles complètes de la chanson", expanded=False):
-            for lbl,txt in [
-                ("🎵 Introduction",song.intro),("📖 Acte I — Vie normale",song.acte1),
-                ("😮 Acte II — La tentation",song.acte2),("🚨 Refrain 1 — Avertissement",song.refrain1),
-                ("⚠️ Acte III — La bêtise",song.acte3),("💥 Acte IV — Conséquence",song.acte4),
-                ("💡 Refrain 2 — La leçon",song.refrain2),("😢 Acte V — Il comprend",song.acte5),
-                ("🤝 Acte VI — La promesse",song.acte6),("🫵 Message final",song.outro)]:
-                st.markdown(f'<div class="song-blk"><div class="song-lbl">{lbl}</div>'
-                    f'<div class="song-txt">{txt}</div></div>',unsafe_allow_html=True)
+            timeline_html += "</div>"
+            
+            st.markdown(timeline_html, unsafe_allow_html=True)
 
         st.markdown("<br>",unsafe_allow_html=True)
         cb,cg=st.columns([1,2])
         with cb:
-            if st.button("← Modifier",use_container_width=True):
+            if st.button(":material/arrow_back: Modifier",use_container_width=True):
                 st.session_state.step=1; st.session_state.val=None; st.rerun()
         with cg:
-            if st.button("🎬 Générer la vidéo maintenant!",type="primary",use_container_width=True):
+            if st.button(":material/movie: Générer la vidéo maintenant!",type="primary",use_container_width=True):
                 st.session_state.step=3; st.rerun()
 
     # ══════════════════════════════════════
@@ -1646,25 +1840,26 @@ def main():
         </div>""",unsafe_allow_html=True)
 
         with st.status("⚙️ Génération en cours...",expanded=True) as status:
+            info_txt = st.empty()
             aph = st.empty()
             with tempfile.TemporaryDirectory() as tmpdir:
-                audio_path, durees_frames = gen_audio(char, st.session_state.narrations, tmpdir, aph)
+                audio_path, durees_frames = gen_audio(char, st.session_state.narrations, st.session_state.theme, tmpdir, aph)
                 aph.empty()
                 
                 # Check list is complete for safety
                 if not durees_frames or len(durees_frames) < 15:
                     durees_frames = [int(Cfg.FPS*5)] * 15
                     
-                scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts, durees_frames)
+                scenes=build_scenes(char,song,st.session_state.theme,st.session_state.narrations,st.session_state.img_prompts, st.session_state.emotions_personnage, st.session_state.lieux_scenes, durees_frames)
                 
-                st.write("🖼️ Génération des décors avec l'IA...")
+                info_txt.write("🖼️ Génération des décors avec l'IA...")
                 import urllib.request, urllib.parse, time
                 pb_bg = st.progress(0, text="Téléchargement des images IA…")
                 for i, scene in enumerate(scenes):
                     image_recue = False
                     for tentatives in range(10):
                         try:
-                            prompt = f"{scene.image_prompt}, 2d flat vector illustration, colorful children book style, cute, no text, no people"
+                            prompt = f"{scene.image_prompt}, completely exact same character design, highly consistent character, 2d flat vector illustration, colorful children book style, cute, no text"
                             url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={Cfg.SIZE}&height={Cfg.SIZE}&nologo=true&seed={42+i}"
                             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -1676,40 +1871,51 @@ def main():
                     if not image_recue: scene.bg_img = None
                     pb_bg.progress((i+1)/len(scenes), text=f"Décor IA {i+1}/{len(scenes)}")
 
-                st.write("🎨 Rendu vidéo frame par frame...")
+                pb_bg.empty()
+                info_txt.write("🎨 Rendu vidéo frame par frame...")
                 pb=st.progress(0,text="Démarrage…")
                 frames=render_all(scenes,char.genre,song,td,pb)
 
-                st.write("⚙️ Encodage MP4…")
+                pb.empty()
+                info_txt.write("⚙️ Encodage MP4…")
                 fp=encode_video(frames,audio_path,tmpdir,char.prenom)
                 if not os.path.exists(fp):
                     st.error("❌ Erreur encodage. Vérifie que ffmpeg est installé."); st.stop()
                 with open(fp,"rb")as fv: vb=fv.read()
+            info_txt.empty()
             status.update(label="✅ Vidéo prête!",state="complete",expanded=False)
 
-        st.success(f"🎉 La vidéo de **{char.prenom}** est prête!")
+        st.success(f"La vidéo de **{char.prenom}** est prête!", icon=":material/celebration:")
         st.video(vb)
         danger_slug=data.get("danger_court","").replace(" ","_")
         st.download_button(
-            label=f"💾 Télécharger la vidéo — {char.prenom}.mp4",
+            label=f":material/save: Télécharger la vidéo — {char.prenom}.mp4",
             data=vb,
             file_name=f"anime_{char.prenom.lower()}_{danger_slug}.mp4",
             mime="video/mp4",use_container_width=True,type="primary")
 
         st.markdown("---")
-        c1,c2=st.columns(2)
+        c1, c2 = st.columns(2)
         with c1:
-            if st.button("🔄 Créer une nouvelle vidéo",use_container_width=True,type="primary"):
-                for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme","confirmed_yes","confirmed_no"]:
-                    st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k in["narrations","img_prompts"] else "" if k=="betise" else False if k in["confirmed_yes","confirmed_no"] else None
+            # Relancer avec les mêmes données (Générera de nouvelles images avec l'IA)
+            if st.button(":material/refresh: Regénérer la vidéo", use_container_width=True, type="primary"):
                 st.rerun()
         with c2:
-            st.info("💡 Partage cette vidéo avec ton enfant pour apprendre en s'amusant!")
-
+            # Retour à l'étape 2 (modifier le scénario)
+            if st.button(":material/arrow_back: Retour au scénario", use_container_width=True):
+                st.session_state.step = 2
+                st.rerun()
+                
+        st.markdown("<br>", unsafe_allow_html=True)
+        # Revenir complètement au début pour une toute nouvelle bêtise
+        if st.button(":material/home: Créer une toute nouvelle histoire (Accueil)", use_container_width=True):
+            for k in["step","betise","val","scenario","char","song","narrations","img_prompts","theme","confirmed_yes","confirmed_no","chat_history","editing_index","editing_content"]:
+                st.session_state[k]=1 if k=="step" else "general" if k=="theme" else [] if k in["narrations","img_prompts","chat_history"] else "" if k=="betise" else False if k in["confirmed_yes","confirmed_no"] else None
+            st.rerun()
     # ── Footer ──
     st.markdown("---")
     st.markdown("<p style='text-align:center;font-size:.76rem;color:#94a3b8;'>"
-        "Studio Animé Éducatif v3 · Groq AI (100% gratuit) · "
+        "Studio Animé Éducatif v3 · Groq AI · "
         "Pour les enfants de 3 à 8 ans · Bienveillant &amp; Éducatif</p>",
         unsafe_allow_html=True)
 
@@ -1717,3 +1923,5 @@ def main():
 if __name__=="__main__":
     main()
     
+
+

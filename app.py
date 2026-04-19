@@ -1881,17 +1881,26 @@ def main():
                 fp=encode_video(frames,audio_path,tmpdir,char.prenom)
                 if not os.path.exists(fp):
                     st.error("❌ Erreur encodage. Vérifie que ffmpeg est installé."); st.stop()
+                
+                # Sauvegarder dans un fichier persistant pour contourner le bug 404 de st.video(bytes)
+                import shutil
+                shutil.copy(fp, "video_output.mp4")
                 with open(fp,"rb")as fv: vb=fv.read()
             info_txt.empty()
             status.update(label="✅ Vidéo prête!",state="complete",expanded=False)
 
         st.success(f"La vidéo de **{char.prenom}** est prête!", icon=":material/celebration:")
-        st.video(vb)
-        danger_slug=data.get("danger_court","").replace(" ","_")
+        st.video("video_output.mp4")
+        
+        # Nettoyer les caractères spéciaux pour éviter une erreur 404 au téléchargement
+        import re
+        safe_prenom = re.sub(r'[^A-Za-z0-9]', '', char.prenom.lower())
+        danger_slug = re.sub(r'[^A-Za-z0-9_]', '', data.get("danger_court","").replace(" ","_"))
+        
         st.download_button(
             label=f":material/save: Télécharger la vidéo — {char.prenom}.mp4",
             data=vb,
-            file_name=f"anime_{char.prenom.lower()}_{danger_slug}.mp4",
+            file_name=f"anime_{safe_prenom}_{danger_slug}.mp4",
             mime="video/mp4",use_container_width=True,type="primary")
 
         st.markdown("---")
